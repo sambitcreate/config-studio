@@ -1,0 +1,40 @@
+export type FileFormat = "json" | "jsonc" | "yaml" | "toml";
+
+export interface OpenFile {
+  path: string;
+  content: string;
+  format: FileFormat;
+  fileName: string;
+}
+
+export interface SaveResult {
+  success: boolean;
+  backup_path: string | null;
+  error: string | null;
+}
+
+export interface BackupInfo {
+  path: string;
+  timestamp: string;
+  original_path: string;
+}
+
+export interface ValidationError {
+  path: string;
+  message: string;
+  severity: "error" | "warning";
+}
+
+export type EditorMode = "form" | "structure" | "raw" | "diff";
+
+export interface AppState {
+  currentFile: OpenFile | null;
+  originalContent: string;
+  configData: Record<string, unknown> | null;
+  dirty: boolean;
+  editorMode: EditorMode;
+  validationErrors: ValidationError[];
+  recentFiles: string[];
+  isSaving: boolean;
+  lastSaveResult: SaveResult | null;
+}
