@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #f2f2f7;
+  --color-foreground: #1c1c1e;
+  --color-card: #ffffff;
+  --color-card-foreground: #1c1c1e;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #1c1c1e;
+  --color-primary: #007aff;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #e5e5ea;
+  --color-secondary-foreground: #1c1c1e;
+  --color-muted: #e9e9eb;
+  --color-muted-foreground: #636366;
+  --color-accent: #f2f2f7;
+  --color-accent-foreground: #1c1c1e;
+  --color-border: #c7c7cc;
+  --color-input: #e5e5ea;
+  --color-ring: #007aff;
+  --color-sidebar: #ffffff;
+  --color-sidebar-foreground: #3a3a3c;
+  --color-sidebar-accent: #f2f2f7;
+  --color-danger: #ff3b30;
+  --color-warning: #ff9500;
+  --color-success: #34c759;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-background: #000000;
+    --color-foreground: #f5f5f7;
+    --color-card: #1c1c1e;
+    --color-card-foreground: #f5f5f7;
+    --color-popover: #1c1c1e;
+    --color-popover-foreground: #f5f5f7;
+    --color-primary: #0a84ff;
+    --color-primary-foreground: #ffffff;
+    --color-secondary: #2c2c2e;
+    --color-secondary-foreground: #f5f5f7;
+    --color-muted: #2c2c2e;
+    --color-muted-foreground: #98989d;
+    --color-accent: #2c2c2e;
+    --color-accent-foreground: #f5f5f7;
+    --color-border: #38383a;
+    --color-input: #2c2c2e;
+    --color-ring: #0a84ff;
+    --color-sidebar: #1c1c1e;
+    --color-sidebar-foreground: #98989d;
+    --color-sidebar-accent: #2c2c2e;
+    --color-danger: #ff453a;
+    --color-warning: #ff9f0a;
+    --color-success: #30d158;
+  }
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.neu-inset {
+  background-color: var(--color-card);
+  border-radius: 12px;
+  box-shadow: inset 0px 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.neu-raised {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.06), 0px 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+}
+
+.neu-raised:hover {
+  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.08), 0px 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.neu-raised:active {
+  transform: translateY(0.5px);
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.neu-card {
+  background-color: var(--color-card);
+  border-radius: 16px;
+  box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.05), 0px 0px 1px rgba(0, 0, 0, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  .neu-inset {
+    box-shadow: inset 0px 1px 3px rgba(0, 0, 0, 0.25);
+  }
+
+  .neu-raised {
+    border-color: var(--color-border);
+    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.2), 0px 1px 2px rgba(0, 0, 0, 0.12);
+  }
+
+  .neu-raised:hover {
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.25), 0px 1px 3px rgba(0, 0, 0, 0.12);
+  }
+
+  .neu-card {
+    box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.2), 0px 0px 1px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.jse-theme-dark {
+  --jse-theme-color: #0a84ff;
+  --jse-theme-color-highlight: #0a84ff30;
+  --jse-background-color: #1c1c1e;
+  --jse-text-color: #f5f5f7;
+  --jse-text-color-inverse: #1c1c1e;
+  --jse-main-border: 1px solid #38383a;
+}
