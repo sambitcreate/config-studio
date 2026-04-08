@@ -193,7 +193,7 @@ describe("SaveControls", () => {
       validationErrors: [
         {
           path: "/",
-          message: "YAML structured editing is not available yet. Raw mode is still available.",
+          message: "YAML structured editing is not available yet. Raw mode is safest for now, and richer support is planned.",
           severity: "warning",
         },
       ],

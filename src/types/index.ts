@@ -41,4 +41,5 @@ export interface AppState {
   recentFiles: string[];
   isSaving: boolean;
   lastSaveResult: SaveResult | null;
+  jsoncCommentWarningAcceptedFor: string | null;
 }

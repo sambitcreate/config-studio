@@ -14,6 +14,7 @@ interface AppStore {
   isSaving: boolean;
   lastSaveResult: SaveResult | null;
   activeSection: string;
+  jsoncCommentWarningAcceptedFor: string | null;
 
   setCurrentFile: (file: OpenFile) => void;
   setOriginalContent: (content: string) => void;
@@ -27,6 +28,7 @@ interface AppStore {
   setIsSaving: (saving: boolean) => void;
   setLastSaveResult: (result: SaveResult | null) => void;
   setActiveSection: (section: string) => void;
+  setJsoncCommentWarningAcceptedFor: (content: string | null) => void;
   resetFile: () => void;
 }
 
@@ -43,6 +45,7 @@ export const useAppStore = create<AppStore>((set) => ({
   isSaving: false,
   lastSaveResult: null,
   activeSection: "",
+  jsoncCommentWarningAcceptedFor: null,
 
   setCurrentFile: (file) =>
     set((state) => {
@@ -55,7 +58,14 @@ export const useAppStore = create<AppStore>((set) => ({
 
   setOriginalContent: (content) => set({ originalContent: content }),
 
-  setRawContent: (content) => set({ rawContent: content }),
+  setRawContent: (content) =>
+    set((state) => ({
+      rawContent: content,
+      jsoncCommentWarningAcceptedFor:
+        state.jsoncCommentWarningAcceptedFor === content
+          ? state.jsoncCommentWarningAcceptedFor
+          : null,
+    })),
 
   setConfigData: (data) => set({ configData: data }),
 
@@ -79,6 +89,9 @@ export const useAppStore = create<AppStore>((set) => ({
 
   setActiveSection: (section) => set({ activeSection: section }),
 
+  setJsoncCommentWarningAcceptedFor: (content) =>
+    set({ jsoncCommentWarningAcceptedFor: content }),
+
   resetFile: () =>
     set({
       currentFile: null,
@@ -90,5 +103,6 @@ export const useAppStore = create<AppStore>((set) => ({
       validationErrors: [],
       lastSaveResult: null,
       activeSection: "",
+      jsoncCommentWarningAcceptedFor: null,
     }),
 }));

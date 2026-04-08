@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { confirm, open as dialogOpen } from "@tauri-apps/plugin-dialog";
-import { detectFormat, getFileName, parseContent, supportsStructuredEditing, supportsVisualEditing } from "@/lib/parse";
+import { detectFormat, getFileName, parseContent, supportsStructuredEditing } from "@/lib/parse";
 import { useAppStore } from "@/lib/state/store";
 import type { OpenFile } from "@/types";
 
@@ -61,7 +61,7 @@ export async function loadFileIntoStore(filePath: string) {
     store.setRawContent(result.content);
     store.setDirty(false);
     store.setEditorMode(
-      parsed.data && parsed.rootKind === "object" && supportsVisualEditing(format)
+      parsed.data && parsed.rootKind === "object" && format === "json"
         ? "form"
         : "raw"
     );
