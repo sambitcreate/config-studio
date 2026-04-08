@@ -12,6 +12,12 @@
   --color-input: #ffffff;
   --color-overlay: rgba(28, 25, 23, 0.45);
 
+  /* Elevation shadow scale */
+  --shadow-elevation-1: 0 3px 6px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-elevation-2: 0 10px 28px rgba(28, 28, 30, 0.06);
+  --shadow-elevation-3: 0 14px 36px rgba(28, 28, 30, 0.06);
+  --shadow-inset-1: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+
   /* Legacy aliases (kept to avoid breaking Tailwind utilities elsewhere) */
   --color-card: #ffffff;
   --color-card-foreground: #1c1917;
@@ -105,7 +111,7 @@ button {
   border-radius: 24px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  box-shadow: 0 10px 28px var(--color-overlay);
+  box-shadow: var(--shadow-elevation-2);
   flex-wrap: wrap;
 }
 
@@ -131,7 +137,7 @@ button {
   border-radius: 28px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  box-shadow: 0 14px 36px var(--color-overlay);
+  box-shadow: var(--shadow-elevation-3);
   overflow: hidden;
 }
 
@@ -164,13 +170,13 @@ button {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 10px var(--color-overlay), 0 1px 3px var(--color-overlay);
+  box-shadow: var(--shadow-elevation-1);
   transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
 }
 
 .toolbar-button:hover,
 .raised-button:hover {
-  box-shadow: 0 7px 16px var(--color-overlay), 0 2px 4px var(--color-overlay);
+  box-shadow: var(--shadow-elevation-2);
 }
 
 .toolbar-button:active,
@@ -191,7 +197,7 @@ button {
 .mode-tab-button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-  box-shadow: 0 2px 5px var(--color-overlay);
+  box-shadow: var(--shadow-elevation-1);
 }
 
 .mode-tabs-shell {
@@ -201,7 +207,7 @@ button {
   padding: 6px;
   border-radius: 20px;
   background: var(--color-surface-2);
-  box-shadow: inset 0 1px 3px var(--color-overlay);
+  box-shadow: var(--shadow-inset-1);
 }
 
 .mode-tab-button {
@@ -221,7 +227,7 @@ button {
 .mode-tab-button-active {
   color: var(--color-foreground);
   background: var(--color-surface);
-  box-shadow: 0 2px 6px var(--color-overlay);
+  box-shadow: var(--shadow-elevation-1);
 }
 
 .mode-tab-button-idle:hover:not(:disabled) {
@@ -275,7 +281,7 @@ button {
   border-radius: 28px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  box-shadow: 0 14px 36px var(--color-overlay);
+  box-shadow: var(--shadow-elevation-3);
 }
 
 .sidebar-header {
@@ -319,13 +325,13 @@ button {
   padding: 0 14px;
   border-radius: 16px;
   text-align: left;
-  box-shadow: 0 3px 6px var(--color-overlay), 0 1px 2px var(--color-overlay);
+  box-shadow: var(--shadow-elevation-1);
   transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
 }
 
 .sidebar-item:not(:disabled):hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px var(--color-overlay), 0 1px 3px var(--color-overlay);
+  box-shadow: var(--shadow-elevation-2);
 }
 
 .sidebar-item:disabled {
@@ -374,7 +380,7 @@ button {
 }
 
 .sidebar-item-active {
-  box-shadow: 0 8px 16px var(--color-overlay), 0 1px 3px var(--color-overlay);
+  box-shadow: var(--shadow-elevation-2);
 }
 
 .sidebar-footer {
@@ -421,7 +427,7 @@ button {
   border-radius: 28px;
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
-  box-shadow: 0 12px 30px var(--color-overlay);
+  box-shadow: var(--shadow-elevation-3);
 }
 
 .welcome-card {
@@ -462,7 +468,7 @@ button {
   border-radius: 999px;
   background: var(--color-surface);
   color: var(--color-primary);
-  box-shadow: 0 4px 10px var(--color-overlay);
+  box-shadow: var(--shadow-elevation-1);
 }
 
 .welcome-profile-copy {
@@ -489,7 +495,7 @@ button {
 .welcome-inset-card {
   border-radius: 22px;
   background: var(--color-surface);
-  box-shadow: inset 0 2px 4px var(--color-overlay);
+  box-shadow: var(--shadow-inset-1);
 }
 
 .welcome-copy-block {
@@ -539,7 +545,7 @@ button {
   gap: 12px;
   padding: 0 16px;
   border-radius: 18px;
-  box-shadow: 0 3px 6px var(--color-overlay), 0 1px 2px var(--color-overlay);
+  box-shadow: var(--shadow-elevation-1);
 }
 
 .task-icon {
@@ -580,7 +586,7 @@ button {
   border-radius: 20px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  box-shadow: 0 8px 24px var(--color-overlay);
+  box-shadow: var(--shadow-elevation-2);
   overflow: hidden;
 }
 
@@ -636,7 +642,7 @@ button {
   overflow: hidden;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  box-shadow: 0 10px 28px var(--color-overlay);
+  box-shadow: var(--shadow-elevation-2);
 }
 
 .editor-panel-card .monaco-editor,
