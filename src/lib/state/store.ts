@@ -4,6 +4,7 @@ import type { EditorMode, OpenFile, SaveResult, ValidationError } from "@/types"
 interface AppStore {
   currentFile: OpenFile | null;
   originalContent: string;
+  rawContent: string;
   configData: Record<string, unknown> | null;
   dirty: boolean;
   editorMode: EditorMode;
@@ -15,6 +16,7 @@ interface AppStore {
 
   setCurrentFile: (file: OpenFile) => void;
   setOriginalContent: (content: string) => void;
+  setRawContent: (content: string) => void;
   setConfigData: (data: Record<string, unknown> | null) => void;
   setDirty: (dirty: boolean) => void;
   setEditorMode: (mode: EditorMode) => void;
@@ -29,6 +31,7 @@ interface AppStore {
 export const useAppStore = create<AppStore>((set) => ({
   currentFile: null,
   originalContent: "",
+  rawContent: "",
   configData: null,
   dirty: false,
   editorMode: "form",
@@ -48,6 +51,8 @@ export const useAppStore = create<AppStore>((set) => ({
     }),
 
   setOriginalContent: (content) => set({ originalContent: content }),
+
+  setRawContent: (content) => set({ rawContent: content }),
 
   setConfigData: (data) => set({ configData: data }),
 
@@ -73,6 +78,7 @@ export const useAppStore = create<AppStore>((set) => ({
     set({
       currentFile: null,
       originalContent: "",
+      rawContent: "",
       configData: null,
       dirty: false,
       validationErrors: [],
