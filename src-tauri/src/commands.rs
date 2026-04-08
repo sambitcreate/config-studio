@@ -46,34 +46,17 @@ fn get_backup_dir(app_data_dir: &Path) -> PathBuf {
     backup_dir
 }
 
-#[command]
-pub fn open_file(path: String) -> Result<FileInfo, String> {
-    let content = fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))?;
-    let format = detect_format(&path);
-    Ok(FileInfo {
-        path,
-        content,
-        format,
-    })
-}
-
-#[command]
-pub fn save_file(
-    app: tauri::AppHandle,
-    path: String,
-    content: String,
+fn save_file_with_backup(
+    app_data_dir: &Path,
+    path: &str,
+    content: &str,
 ) -> Result<SaveResult, String> {
-    let original_path = Path::new(&path);
+    let original_path = Path::new(path);
     if !original_path.exists() {
         return Err("File does not exist".to_string());
     }
 
-    let app_data_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
-
-    let backup_dir = get_backup_dir(&app_data_dir);
+    let backup_dir = get_backup_dir(app_data_dir);
     let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
 
     let file_name = original_path
@@ -92,7 +75,7 @@ pub fn save_file(
         .map_err(|e| format!("Failed to create backup: {}", e))?;
 
     let temp_path = original_path.with_extension("tmp");
-    fs::write(&temp_path, &content).map_err(|e| format!("Failed to write temp file: {}", e))?;
+    fs::write(&temp_path, content).map_err(|e| format!("Failed to write temp file: {}", e))?;
 
     fs::rename(&temp_path, original_path)
         .map_err(|e| format!("Failed to replace original file: {}", e))?;
@@ -104,35 +87,26 @@ pub fn save_file(
     })
 }
 
-#[command]
-pub fn list_backups(app: tauri::AppHandle) -> Result<Vec<BackupInfo>, String> {
-    let app_data_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
-
-    let backup_dir = get_backup_dir(&app_data_dir);
-
+fn list_backups_in_dir(backup_dir: &Path) -> Result<Vec<BackupInfo>, String> {
     if !backup_dir.exists() {
         return Ok(vec![]);
     }
 
     let mut backups: Vec<BackupInfo> = Vec::new();
-
     let entries =
-        fs::read_dir(&backup_dir).map_err(|e| format!("Failed to read backup dir: {}", e))?;
+        fs::read_dir(backup_dir).map_err(|e| format!("Failed to read backup dir: {}", e))?;
 
     for entry in entries.flatten() {
         let path = entry.path();
         if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
             if name.ends_with(".bak") {
-                let timestamp = name
-                    .trim_end_matches(".bak")
-                    .split('_')
-                    .rev()
-                    .take(2)
-                    .collect::<Vec<_>>()
-                    .join("_");
+                let stem = name.trim_end_matches(".bak");
+                let parts: Vec<_> = stem.split('_').collect();
+                let timestamp = if parts.len() >= 2 {
+                    format!("{}_{}", parts[parts.len() - 2], parts[parts.len() - 1])
+                } else {
+                    stem.to_string()
+                };
 
                 backups.push(BackupInfo {
                     path: path.to_string_lossy().to_string(),
@@ -145,6 +119,42 @@ pub fn list_backups(app: tauri::AppHandle) -> Result<Vec<BackupInfo>, String> {
 
     backups.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
     Ok(backups)
+}
+
+#[command]
+pub fn open_file(path: String) -> Result<FileInfo, String> {
+    let content = fs::read_to_string(&path).map_err(|e| format!("Failed to read file: {}", e))?;
+    let format = detect_format(&path);
+    Ok(FileInfo {
+        path,
+        content,
+        format,
+    })
+}
+
+#[command]
+pub fn save_file(
+    app: tauri::AppHandle,
+    path: String,
+    content: String,
+) -> Result<SaveResult, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+
+    save_file_with_backup(&app_data_dir, &path, &content)
+}
+
+#[command]
+pub fn list_backups(app: tauri::AppHandle) -> Result<Vec<BackupInfo>, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+
+    let backup_dir = get_backup_dir(&app_data_dir);
+    list_backups_in_dir(&backup_dir)
 }
 
 #[command]
@@ -173,4 +183,122 @@ pub fn validate_json(content: String) -> Result<bool, String> {
     serde_json::from_str::<serde_json::Value>(&content)
         .map(|_| true)
         .map_err(|e| format!("Invalid JSON: {}", e))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_path(label: &str) -> PathBuf {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time before unix epoch")
+            .as_nanos();
+        std::env::temp_dir().join(format!("config-studio-tests-{}-{}", label, unique))
+    }
+
+    #[test]
+    fn detect_format_matches_supported_extensions() {
+        assert_eq!(detect_format("/tmp/file.JSON"), "json");
+        assert_eq!(detect_format("/tmp/file.jsonc"), "jsonc");
+        assert_eq!(detect_format("/tmp/file.yml"), "yaml");
+        assert_eq!(detect_format("/tmp/file.toml"), "toml");
+        assert_eq!(detect_format("/tmp/file.conf"), "json");
+    }
+
+    #[test]
+    fn open_file_reads_content_and_detects_format() {
+        let dir = temp_path("open-file");
+        fs::create_dir_all(&dir).expect("create test dir");
+        let file_path = dir.join("config.jsonc");
+        fs::write(&file_path, "{\n  \"name\": \"OpenCode\"\n}").expect("write config file");
+
+        let result = open_file(file_path.to_string_lossy().to_string()).expect("open file");
+
+        assert_eq!(result.format, "jsonc");
+        assert!(result.content.contains("OpenCode"));
+
+        fs::remove_dir_all(&dir).expect("remove test dir");
+    }
+
+    #[test]
+    fn save_file_with_backup_replaces_original_and_keeps_backup() {
+        let app_data_dir = temp_path("save-app-data");
+        let working_dir = temp_path("save-workdir");
+        fs::create_dir_all(&app_data_dir).expect("create app data dir");
+        fs::create_dir_all(&working_dir).expect("create working dir");
+
+        let file_path = working_dir.join("settings.json");
+        fs::write(&file_path, "{\"name\":\"before\"}").expect("write original file");
+
+        let path_string = file_path.to_string_lossy().to_string();
+        let result = save_file_with_backup(&app_data_dir, &path_string, "{\"name\":\"after\"}")
+            .expect("save file with backup");
+
+        let backup_path = PathBuf::from(result.backup_path.expect("backup path present"));
+
+        assert!(result.success);
+        assert_eq!(
+            fs::read_to_string(&file_path).expect("read updated file"),
+            "{\"name\":\"after\"}"
+        );
+        assert_eq!(
+            fs::read_to_string(&backup_path).expect("read backup"),
+            "{\"name\":\"before\"}"
+        );
+
+        fs::remove_dir_all(&app_data_dir).expect("remove app data dir");
+        fs::remove_dir_all(&working_dir).expect("remove working dir");
+    }
+
+    #[test]
+    fn list_backups_in_dir_returns_newest_first() {
+        let backup_dir = temp_path("list-backups");
+        fs::create_dir_all(&backup_dir).expect("create backup dir");
+        fs::write(backup_dir.join("settings.json_20240101_010101.bak"), "one")
+            .expect("write old backup");
+        fs::write(backup_dir.join("settings.json_20240201_010101.bak"), "two")
+            .expect("write new backup");
+        fs::write(backup_dir.join("ignore.txt"), "three").expect("write ignored file");
+
+        let backups = list_backups_in_dir(&backup_dir).expect("list backups");
+
+        assert_eq!(backups.len(), 2);
+        assert_eq!(backups[0].timestamp, "20240201_010101");
+        assert_eq!(backups[1].timestamp, "20240101_010101");
+
+        fs::remove_dir_all(&backup_dir).expect("remove backup dir");
+    }
+
+    #[test]
+    fn restore_backup_overwrites_target_file() {
+        let dir = temp_path("restore-backup");
+        fs::create_dir_all(&dir).expect("create restore dir");
+
+        let backup_path = dir.join("settings.json_20240101_010101.bak");
+        let target_path = dir.join("settings.json");
+        fs::write(&backup_path, "{\"name\":\"from-backup\"}").expect("write backup file");
+        fs::write(&target_path, "{\"name\":\"current\"}").expect("write target file");
+
+        let result = restore_backup(
+            backup_path.to_string_lossy().to_string(),
+            target_path.to_string_lossy().to_string(),
+        )
+        .expect("restore backup");
+
+        assert!(result.success);
+        assert_eq!(
+            fs::read_to_string(&target_path).expect("read restored target"),
+            "{\"name\":\"from-backup\"}"
+        );
+
+        fs::remove_dir_all(&dir).expect("remove restore dir");
+    }
+
+    #[test]
+    fn validate_json_accepts_valid_input_and_rejects_invalid_input() {
+        assert!(validate_json("{\"name\":\"OpenCode\"}".to_string()).expect("valid json"));
+        assert!(validate_json("{\"name\":".to_string()).is_err());
+    }
 }
