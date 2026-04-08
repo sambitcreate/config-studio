@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { Settings2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/state/store";
+import { startAppViewTransition } from "@/lib/motion/viewTransition";
 import type { BackupRetentionMode, DefaultOpenMode, ThemePreference } from "@/types";
 
 const themeOptions: Array<{ value: ThemePreference; label: string }> = [
@@ -39,6 +40,10 @@ export function SettingsDrawer({
     updateFormatDefaults,
   } = useAppStore();
 
+  const handleDismiss = useCallback(() => {
+    startAppViewTransition(onClose, "overlay-exit");
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) {
       return;
@@ -46,13 +51,13 @@ export function SettingsDrawer({
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        onClose();
+        handleDismiss();
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, open]);
+  }, [handleDismiss, open]);
 
   if (!open) {
     return null;
@@ -63,7 +68,7 @@ export function SettingsDrawer({
       className="settings-drawer-layer"
       onClick={(event) => {
         if (event.target === event.currentTarget) {
-          onClose();
+          handleDismiss();
         }
       }}
     >
@@ -88,7 +93,7 @@ export function SettingsDrawer({
           <button
             type="button"
             className="settings-drawer-close"
-            onClick={onClose}
+            onClick={handleDismiss}
             aria-label="Close settings"
           >
             <X className="w-4 h-4" />

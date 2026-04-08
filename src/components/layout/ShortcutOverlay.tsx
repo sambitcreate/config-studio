@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { X } from "lucide-react";
 import { useAppStore } from "@/lib/state/store";
+import { startAppViewTransition } from "@/lib/motion/viewTransition";
 
 const shortcutGroups = [
   {
@@ -41,6 +42,17 @@ const shortcutGroups = [
 export function ShortcutOverlay() {
   const { shortcutOverlayOpen, setShortcutOverlayOpen, setSettingsOpen } = useAppStore();
 
+  const closeOverlay = useCallback(() => {
+    startAppViewTransition(() => setShortcutOverlayOpen(false), "overlay-exit");
+  }, [setShortcutOverlayOpen]);
+
+  const openSettingsFromHere = useCallback(() => {
+    startAppViewTransition(() => {
+      setShortcutOverlayOpen(false);
+      setSettingsOpen(true);
+    }, "overlay-enter");
+  }, [setShortcutOverlayOpen, setSettingsOpen]);
+
   useEffect(() => {
     if (!shortcutOverlayOpen) {
       return;
@@ -48,13 +60,13 @@ export function ShortcutOverlay() {
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setShortcutOverlayOpen(false);
+        closeOverlay();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setShortcutOverlayOpen, shortcutOverlayOpen]);
+  }, [closeOverlay, shortcutOverlayOpen]);
 
   if (!shortcutOverlayOpen) {
     return null;
@@ -64,7 +76,7 @@ export function ShortcutOverlay() {
     <div
       className="modal-overlay"
       role="presentation"
-      onClick={() => setShortcutOverlayOpen(false)}
+      onClick={closeOverlay}
     >
       <div
         className="modal-card shortcut-overlay-card"
@@ -84,7 +96,7 @@ export function ShortcutOverlay() {
           <button
             type="button"
             className="modal-close-button"
-            onClick={() => setShortcutOverlayOpen(false)}
+            onClick={closeOverlay}
             aria-label="Close shortcuts"
           >
             <X className="w-4 h-4" />
@@ -114,10 +126,7 @@ export function ShortcutOverlay() {
           <button
             type="button"
             className="toolbar-button toolbar-button-secondary"
-            onClick={() => {
-              setShortcutOverlayOpen(false);
-              setSettingsOpen(true);
-            }}
+            onClick={openSettingsFromHere}
           >
             Open Settings
           </button>

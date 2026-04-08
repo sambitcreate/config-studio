@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, X } from "lucide-react";
 import { useAppStore } from "@/lib/state/store";
 import { cn } from "@/lib/utils";
+import { startAppViewTransition } from "@/lib/motion/viewTransition";
 
 interface SaveFeedbackNotice {
   tone: "success" | "error";
@@ -13,6 +14,10 @@ export function SaveFeedbackToast() {
   const currentFile = useAppStore((state) => state.currentFile);
   const lastSaveResult = useAppStore((state) => state.lastSaveResult);
   const [notice, setNotice] = useState<SaveFeedbackNotice | null>(null);
+
+  const dismissNotice = useCallback(() => {
+    startAppViewTransition(() => setNotice(null), "toast-dismiss");
+  }, []);
 
   useEffect(() => {
     if (!lastSaveResult) {
@@ -44,12 +49,12 @@ export function SaveFeedbackToast() {
     }
 
     const timeoutId = window.setTimeout(
-      () => setNotice(null),
+      dismissNotice,
       notice.tone === "error" ? 12000 : 7000
     );
 
     return () => window.clearTimeout(timeoutId);
-  }, [notice]);
+  }, [dismissNotice, notice]);
 
   if (!notice) {
     return null;
@@ -79,7 +84,7 @@ export function SaveFeedbackToast() {
           type="button"
           className="save-feedback-dismiss"
           aria-label="Dismiss save feedback"
-          onClick={() => setNotice(null)}
+          onClick={dismissNotice}
         >
           <X className="w-4 h-4" />
         </button>

@@ -201,7 +201,9 @@ export function FormEditor() {
         margin-top: 10px !important;
         color: var(--color-muted-foreground) !important;
         border-radius: 12px !important;
-        transition: color 0.16s ease, background 0.16s ease !important;
+        transition:
+          color var(--duration-fast) var(--ease-standard),
+          background var(--duration-fast) var(--ease-standard) !important;
       }
       .deletable-field-remove:hover {
         color: var(--color-danger) !important;

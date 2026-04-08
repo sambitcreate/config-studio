@@ -4,6 +4,7 @@ import { resolveEditorModeOnOpen } from "@/lib/preferences";
 import { detectFormat, getFileName, parseContent, supportsStructuredEditing } from "@/lib/parse";
 import { useAppStore } from "@/lib/state/store";
 import { createValidationError } from "@/lib/validation/utils";
+import { startAppViewTransition } from "@/lib/motion/viewTransition";
 import type { OpenFile } from "@/types";
 
 const configFileDialogOptions = {
@@ -30,47 +31,50 @@ export async function confirmDiscardUnsavedChanges(message?: string) {
 
 export async function loadFileIntoStore(filePath: string) {
   const store = useAppStore.getState();
+  const wasEmpty = store.currentFile === null;
 
   try {
     const result = await invoke<OpenFile>("open_file", { path: filePath });
     const format = detectFormat(filePath);
     const parsed = parseContent(result.content, format);
 
-    if (parsed.error) {
-      store.setValidationErrors([
-        createValidationError(
-          "/",
-          parsed.error,
-          supportsStructuredEditing(format) ? "error" : "warning",
-          result.content
-        ),
-      ]);
-      store.setConfigData(null);
-      store.setConfigRootKind(null);
-    } else {
-      store.setConfigData(parsed.data);
-      store.setConfigRootKind(parsed.rootKind);
-      store.setValidationErrors([]);
-    }
+    startAppViewTransition(() => {
+      if (parsed.error) {
+        store.setValidationErrors([
+          createValidationError(
+            "/",
+            parsed.error,
+            supportsStructuredEditing(format) ? "error" : "warning",
+            result.content
+          ),
+        ]);
+        store.setConfigData(null);
+        store.setConfigRootKind(null);
+      } else {
+        store.setConfigData(parsed.data);
+        store.setConfigRootKind(parsed.rootKind);
+        store.setValidationErrors([]);
+      }
 
-    store.setLastSaveResult(null);
-    store.setCurrentFile({
-      path: filePath,
-      content: result.content,
-      format,
-      fileName: getFileName(filePath),
-    });
-    store.setOriginalContent(result.content);
-    store.setRawContent(result.content);
-    store.setDirty(false);
-    store.setEditorMode(
-      resolveEditorModeOnOpen({
-        preferredMode: store.preferences.defaultOpenMode,
+      store.setLastSaveResult(null);
+      store.setCurrentFile({
+        path: filePath,
+        content: result.content,
         format,
-        rootKind: parsed.rootKind,
-        hasData: Boolean(parsed.data),
-      })
-    );
+        fileName: getFileName(filePath),
+      });
+      store.setOriginalContent(result.content);
+      store.setRawContent(result.content);
+      store.setDirty(false);
+      store.setEditorMode(
+        resolveEditorModeOnOpen({
+          preferredMode: store.preferences.defaultOpenMode,
+          format,
+          rootKind: parsed.rootKind,
+          hasData: Boolean(parsed.data),
+        })
+      );
+    }, wasEmpty ? "nav-forward" : "mode-switch");
 
     return true;
   } catch (error) {

@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useAppStore } from "@/lib/state/store";
 import { getDataSections } from "@/lib/schema";
 import { supportsStructuredEditing } from "@/lib/parse";
 import { formatValidationPath, getTopLevelValidationSection } from "@/lib/validation/utils";
+import { startAppViewTransition } from "@/lib/motion/viewTransition";
 import { Check, AlertCircle, AlertTriangle, ChevronDown, ChevronUp, FileText } from "lucide-react";
 
 export function StatusBar() {
@@ -37,6 +38,13 @@ export function StatusBar() {
           : "Fix JSON in Raw mode";
 
   const hasValidationDetails = validationErrors.length > 0;
+
+  const toggleValidationPanel = useCallback(() => {
+    startAppViewTransition(
+      () => setValidationPanelOpen(!validationPanelOpen),
+      "panel-toggle"
+    );
+  }, [setValidationPanelOpen, validationPanelOpen]);
 
   function handleValidationItemClick(index: number) {
     const error = validationErrors[index];
@@ -73,7 +81,7 @@ export function StatusBar() {
                 className="status-pill status-pill-button"
                 aria-expanded={validationPanelOpen}
                 aria-controls="validation-panel"
-                onClick={() => setValidationPanelOpen(!validationPanelOpen)}
+                onClick={toggleValidationPanel}
               >
                 {errorCount > 0 ? (
                   <>

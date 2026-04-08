@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArchiveRestore, ChevronDown, LoaderCircle, RotateCcw, Trash2 } from "lucide-react";
 import { useAppStore } from "@/lib/state/store";
 import { cn } from "@/lib/utils";
+import { startAppViewTransition } from "@/lib/motion/viewTransition";
 import {
   deleteBackupFromStore,
   formatBackupRelativeTime,
@@ -22,6 +23,13 @@ export function BackupsMenu() {
 
   const latestBackup = backups[0];
 
+  const togglePopover = useCallback((next: boolean) => {
+    startAppViewTransition(
+      () => setIsOpen(next),
+      next ? "overlay-enter" : "overlay-exit"
+    );
+  }, []);
+
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       setNow(Date.now());
@@ -37,13 +45,13 @@ export function BackupsMenu() {
 
     function handlePointerDown(event: MouseEvent) {
       if (!shellRef.current?.contains(event.target as Node)) {
-        setIsOpen(false);
+        togglePopover(false);
       }
     }
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setIsOpen(false);
+        togglePopover(false);
       }
     }
 
@@ -53,7 +61,7 @@ export function BackupsMenu() {
       document.removeEventListener("mousedown", handlePointerDown);
       window.removeEventListener("keydown", handleEscape);
     };
-  }, [isOpen]);
+  }, [isOpen, togglePopover]);
 
   useEffect(() => {
     setActionError(null);
@@ -74,7 +82,7 @@ export function BackupsMenu() {
     try {
       const restored = await restoreBackupIntoStore(backupPath, currentFilePath);
       if (restored) {
-        setIsOpen(false);
+        togglePopover(false);
       }
     } catch (error) {
       setActionError(String(error));
@@ -118,7 +126,7 @@ export function BackupsMenu() {
           className="toolbar-button toolbar-button-secondary toolbar-menu-button"
           aria-expanded={isOpen}
           aria-haspopup="menu"
-          onClick={() => setIsOpen((open) => !open)}
+          onClick={() => togglePopover(!isOpen)}
           title="Show backups"
         >
           <ArchiveRestore className="w-4 h-4" />

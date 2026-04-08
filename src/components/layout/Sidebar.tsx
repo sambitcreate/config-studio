@@ -1,6 +1,7 @@
 import { useAppStore } from "@/lib/state/store";
 import type { DataSection } from "@/lib/schema";
 import { cn } from "@/lib/utils";
+import { startAppViewTransition } from "@/lib/motion/viewTransition";
 import {
   FileJson,
   FileText,
@@ -40,7 +41,10 @@ export function Sidebar({ sections }: SidebarProps) {
             return (
             <button
               key={id}
-              onClick={() => setActiveSection(id)}
+              onClick={() => {
+                if (id === activeSection) return;
+                startAppViewTransition(() => setActiveSection(id), "section-change");
+              }}
               className={cn(
                 "sidebar-item",
                 `sidebar-item-${tone}`,

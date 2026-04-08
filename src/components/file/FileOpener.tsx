@@ -1,14 +1,22 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppStore } from "@/lib/state/store";
 import { openFileIntoStore, openRecentFileIntoStore } from "@/lib/fileSession";
 import { ChevronDown, FolderOpen, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getFileName } from "@/lib/parse";
+import { startAppViewTransition } from "@/lib/motion/viewTransition";
 
 export function FileOpener() {
   const { dirty, currentFile, recentFiles } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
   const shellRef = useRef<HTMLDivElement | null>(null);
+
+  const togglePopover = useCallback((next: boolean) => {
+    startAppViewTransition(
+      () => setIsOpen(next),
+      next ? "overlay-enter" : "overlay-exit"
+    );
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -17,13 +25,13 @@ export function FileOpener() {
 
     function handlePointerDown(event: MouseEvent) {
       if (!shellRef.current?.contains(event.target as Node)) {
-        setIsOpen(false);
+        togglePopover(false);
       }
     }
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setIsOpen(false);
+        togglePopover(false);
       }
     }
 
@@ -33,7 +41,7 @@ export function FileOpener() {
       document.removeEventListener("mousedown", handlePointerDown);
       window.removeEventListener("keydown", handleEscape);
     };
-  }, [isOpen]);
+  }, [isOpen, togglePopover]);
 
   return (
     <div className="toolbar-cluster toolbar-cluster-start">
@@ -50,7 +58,7 @@ export function FileOpener() {
           </button>
           <button
             type="button"
-            onClick={() => setIsOpen((open) => !open)}
+            onClick={() => togglePopover(!isOpen)}
             className="toolbar-button toolbar-button-secondary toolbar-menu-toggle"
             disabled={recentFiles.length === 0}
             aria-label="Recent files"
@@ -86,7 +94,7 @@ export function FileOpener() {
                       onClick={async () => {
                         const opened = await openRecentFileIntoStore(path);
                         if (opened) {
-                          setIsOpen(false);
+                          togglePopover(false);
                         }
                       }}
                     >

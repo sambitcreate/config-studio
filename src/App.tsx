@@ -6,7 +6,9 @@ import { isEditorModeAvailable } from "@/lib/editorModes";
 import { getDataSections } from "@/lib/schema";
 import { cn } from "@/lib/utils";
 import { useSystemTheme } from "@/lib/theme/useSystemTheme";
+import { startAppViewTransition } from "@/lib/motion/viewTransition";
 import { refreshBackupsForCurrentFile } from "@/lib/backups";
+import type { EditorMode } from "@/types";
 import {
   confirmDiscardUnsavedChanges,
   openFileIntoStore,
@@ -94,8 +96,10 @@ function App() {
       if (settingsOpen || shortcutOverlayOpen) {
         if (event.key === "Escape") {
           event.preventDefault();
-          setSettingsOpen(false);
-          setShortcutOverlayOpen(false);
+          startAppViewTransition(() => {
+            setSettingsOpen(false);
+            setShortcutOverlayOpen(false);
+          }, "overlay-exit");
         }
         return;
       }
@@ -126,12 +130,12 @@ function App() {
 
       if (isCmd && event.key === ",") {
         event.preventDefault();
-        setSettingsOpen(true);
+        startAppViewTransition(() => setSettingsOpen(true), "overlay-enter");
         return;
       }
 
       if (isCmd && /^([1-4])$/.test(event.key) && currentFile) {
-        const shortcutModes = ["form", "structure", "raw", "diff"] as const;
+        const shortcutModes: readonly EditorMode[] = ["form", "structure", "raw", "diff"];
         const nextMode = shortcutModes[Number(event.key) - 1];
         const canSwitch = isEditorModeAvailable({
           mode: nextMode,
@@ -142,7 +146,11 @@ function App() {
 
         if (canSwitch) {
           event.preventDefault();
-          setEditorMode(nextMode);
+          const currentIndex = shortcutModes.indexOf(editorMode);
+          const nextIndex = shortcutModes.indexOf(nextMode);
+          const direction =
+            nextIndex > currentIndex ? "nav-forward" : "nav-back";
+          startAppViewTransition(() => setEditorMode(nextMode), direction);
         }
         return;
       }
@@ -168,7 +176,7 @@ function App() {
 
       if (!isCmd && !event.altKey && !event.ctrlKey && !editableTarget && event.key === "?") {
         event.preventDefault();
-        setShortcutOverlayOpen(true);
+        startAppViewTransition(() => setShortcutOverlayOpen(true), "overlay-enter");
       }
     }
 

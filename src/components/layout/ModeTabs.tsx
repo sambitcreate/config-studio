@@ -3,6 +3,7 @@ import { useAppStore } from "@/lib/state/store";
 import { isEditorModeAvailable } from "@/lib/editorModes";
 import { hasJsoncComments, supportsStructuredEditing } from "@/lib/parse";
 import { cn } from "@/lib/utils";
+import { startAppViewTransition } from "@/lib/motion/viewTransition";
 import { LayoutGrid, FileJson, Code2, GitCompare } from "lucide-react";
 import type { EditorMode } from "@/types";
 
@@ -17,6 +18,8 @@ const tabs: { mode: EditorMode; label: string; icon: React.ReactNode; shortcut: 
   { mode: "raw", label: "Raw", icon: <Code2 className="w-3.5 h-3.5" />, shortcut: "Cmd+3" },
   { mode: "diff", label: "Diff", icon: <GitCompare className="w-3.5 h-3.5" />, shortcut: "Cmd+4" },
 ];
+
+const modeOrder: EditorMode[] = tabs.map((tab) => tab.mode);
 
 export function ModeTabs() {
   const {
@@ -92,7 +95,16 @@ export function ModeTabs() {
       setJsoncCommentWarningAcceptedFor(rawContent);
     }
 
-    setEditorMode(mode);
+    const currentIndex = modeOrder.indexOf(editorMode);
+    const nextIndex = modeOrder.indexOf(mode);
+    const direction =
+      currentIndex === -1 || nextIndex === -1
+        ? "mode-switch"
+        : nextIndex > currentIndex
+          ? "nav-forward"
+          : "nav-back";
+
+    startAppViewTransition(() => setEditorMode(mode), direction);
   };
 
   return (

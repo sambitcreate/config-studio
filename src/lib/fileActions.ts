@@ -3,6 +3,7 @@ import { confirmDiscardUnsavedChanges } from "@/lib/fileSession";
 import { parseContent, serializeJson, supportsStructuredEditing } from "@/lib/parse";
 import { validateBasicJson } from "@/lib/validation";
 import { useAppStore } from "@/lib/state/store";
+import { startAppViewTransition } from "@/lib/motion/viewTransition";
 import type { SaveResult } from "@/types";
 
 export async function saveCurrentFile() {
@@ -113,22 +114,25 @@ export async function revertCurrentFile() {
 
   const parsed = parseContent(originalContent, currentFile.format);
 
-  store.setRawContent(originalContent);
-  store.setConfigData(parsed.data);
-  store.setConfigRootKind(parsed.rootKind);
+  startAppViewTransition(() => {
+    store.setRawContent(originalContent);
+    store.setConfigData(parsed.data);
+    store.setConfigRootKind(parsed.rootKind);
 
-  if (parsed.error) {
-    store.setValidationErrors([
-      {
-        path: "/",
-        message: parsed.error,
-        severity: supportsStructuredEditing(currentFile.format) ? "error" : "warning",
-      },
-    ]);
-  } else {
-    store.setValidationErrors([]);
-  }
+    if (parsed.error) {
+      store.setValidationErrors([
+        {
+          path: "/",
+          message: parsed.error,
+          severity: supportsStructuredEditing(currentFile.format) ? "error" : "warning",
+        },
+      ]);
+    } else {
+      store.setValidationErrors([]);
+    }
 
-  store.setDirty(false);
+    store.setDirty(false);
+  }, "nav-back");
+
   return true;
 }

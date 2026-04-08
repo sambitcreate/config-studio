@@ -1,6 +1,6 @@
 [package]
 name = "config-studio"
-version = "0.1.0"
+version = "0.2.0"
 description = "A macOS-native Tauri Config Studio for visually editing local configuration files"
 authors = ["Sambit Biswas"]
 edition = "2021"
