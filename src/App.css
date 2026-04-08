@@ -340,7 +340,7 @@ button {
 .sidebar-item-blue,
 .task-item-blue {
   background: linear-gradient(180deg, #e4f1ff 0%, #d2e7ff 100%);
-  color: #4285f4;
+  color: #1a56b8;
 }
 
 .sidebar-item-active {
@@ -537,7 +537,7 @@ button {
 
 .task-icon-blue,
 .task-circle-blue {
-  color: #4285f4;
+  color: #1a56b8;
 }
 
 .statusbar-shell {
