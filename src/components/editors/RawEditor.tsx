@@ -1,32 +1,56 @@
 import { lazy, Suspense, useCallback } from "react";
 import { useAppStore } from "@/lib/state/store";
-import { serializeJson } from "@/lib/parse";
+import { parseContent, supportsStructuredEditing } from "@/lib/parse";
 
 const MonacoEditor = lazy(() => import("@monaco-editor/react").then((m) => ({ default: m.default })));
 
 export function RawEditor() {
-  const { configData, setConfigData, setDirty, originalContent, currentFile } = useAppStore();
+  const {
+    rawContent,
+    setRawContent,
+    setConfigData,
+    setDirty,
+    originalContent,
+    currentFile,
+    setValidationErrors,
+  } = useAppStore();
 
-  const content = configData ? serializeJson(configData) : "";
+  const editorLanguage = currentFile?.format === "jsonc"
+    ? "json"
+    : currentFile?.format === "toml"
+      ? "ini"
+      : currentFile?.format ?? "json";
 
   const handleChange = useCallback(
     (value: string | undefined) => {
-      if (value === undefined) return;
-      try {
-        const parsed = JSON.parse(value);
-        setConfigData(parsed);
-        setDirty(value !== originalContent);
-      } catch {
-        // user is still typing
+      if (value === undefined || !currentFile) return;
+
+      setRawContent(value);
+      setDirty(value !== originalContent);
+
+      const parsed = parseContent(value, currentFile.format);
+      if (parsed.error) {
+        setConfigData(null);
+        setValidationErrors([
+          {
+            path: "/",
+            message: parsed.error,
+            severity: supportsStructuredEditing(currentFile.format) ? "error" : "warning",
+          },
+        ]);
+        return;
       }
+
+      setConfigData(parsed.data);
+      setValidationErrors([]);
     },
-    [setConfigData, setDirty, originalContent]
+    [currentFile, originalContent, setConfigData, setDirty, setRawContent, setValidationErrors]
   );
 
   if (!currentFile) {
     return (
-      <div className="flex items-center justify-center h-full p-8">
-        <div className="neu-card p-6 text-center text-muted-foreground text-sm">
+      <div className="editor-empty-state">
+        <div className="editor-empty-card">
           Open a file to edit
         </div>
       </div>
@@ -34,33 +58,35 @@ export function RawEditor() {
   }
 
   return (
-    <div className="h-full w-full">
+    <div className="editor-panel-shell">
       <Suspense
         fallback={
-          <div className="flex items-center justify-center h-full p-8">
-            <div className="neu-card p-6 text-center text-muted-foreground text-sm">
+          <div className="editor-empty-state">
+            <div className="editor-empty-card">
               Loading editor...
             </div>
           </div>
         }
       >
-        <MonacoEditor
-          height="100%"
-          defaultLanguage="json"
-          value={content}
-          onChange={handleChange}
-          theme="vs-dark"
-          options={{
-            minimap: { enabled: false },
-            fontSize: 13,
-            lineNumbers: "on",
-            wordWrap: "on",
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            tabSize: 2,
-            padding: { top: 16, bottom: 16 },
-          }}
-        />
+        <div className="editor-panel-card">
+          <MonacoEditor
+            height="100%"
+            defaultLanguage={editorLanguage}
+            value={rawContent}
+            onChange={handleChange}
+            theme="vs"
+            options={{
+              minimap: { enabled: false },
+              fontSize: 13,
+              lineNumbers: "on",
+              wordWrap: "on",
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              tabSize: 2,
+              padding: { top: 22, bottom: 22 },
+            }}
+          />
+        </div>
       </Suspense>
     </div>
   );
