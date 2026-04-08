@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useAppStore } from "@/lib/state/store";
+import { confirmDiscardUnsavedChanges } from "@/lib/fileSession";
 import { parseContent, serializeJson, supportsStructuredEditing } from "@/lib/parse";
 import { validateBasicJson } from "@/lib/validation";
 import type { SaveResult } from "@/types";
@@ -95,8 +96,16 @@ export function SaveControls() {
     }
   }
 
-  function handleRevert() {
-    if (!currentFile) return;
+  async function handleRevert() {
+    if (!currentFile || !dirty) return;
+
+    const shouldDiscard = await confirmDiscardUnsavedChanges(
+      "Discard your unsaved changes and restore the last saved version?"
+    );
+
+    if (!shouldDiscard) {
+      return;
+    }
 
     const parsed = parseContent(originalContent, currentFile.format);
 

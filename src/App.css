@@ -172,6 +172,86 @@ button {
   flex: 0 0 auto;
 }
 
+.save-feedback-layer {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.save-feedback-toast {
+  width: min(420px, calc(100vw - 36px));
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 22px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-elevation-3);
+  pointer-events: auto;
+}
+
+.save-feedback-toast-success {
+  border-color: var(--color-tone-mint-border);
+  background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-tone-mint-bg) 100%);
+}
+
+.save-feedback-toast-error {
+  border-color: color-mix(in srgb, var(--color-danger) 28%, var(--color-border));
+  background: linear-gradient(180deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-danger) 8%, var(--color-surface)) 100%);
+}
+
+.save-feedback-icon-shell {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  flex: 0 0 auto;
+  background: var(--color-surface-2);
+  color: var(--color-foreground);
+}
+
+.save-feedback-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.save-feedback-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+.save-feedback-detail {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-muted-foreground);
+  word-break: break-word;
+}
+
+.save-feedback-dismiss {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-muted-foreground);
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.save-feedback-dismiss:hover {
+  background: var(--color-surface-2);
+  color: var(--color-foreground);
+}
+
 .app-topbar-panel {
   display: flex;
   align-items: center;

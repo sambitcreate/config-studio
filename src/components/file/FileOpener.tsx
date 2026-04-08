@@ -1,86 +1,15 @@
-import { invoke } from "@tauri-apps/api/core";
-import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
-import type { OpenFile } from "@/types";
 import { useAppStore } from "@/lib/state/store";
-import { detectFormat, getFileName, parseContent, supportsStructuredEditing, supportsVisualEditing } from "@/lib/parse";
+import { openFileIntoStore } from "@/lib/fileSession";
 import { FolderOpen } from "lucide-react";
 
 export function FileOpener() {
-  const {
-    setCurrentFile,
-    setOriginalContent,
-    setRawContent,
-    setConfigData,
-    setConfigRootKind,
-    setDirty,
-    setEditorMode,
-    setValidationErrors,
-    dirty,
-    currentFile,
-  } = useAppStore();
-
-  async function handleOpenFile() {
-    const selected = await dialogOpen({
-      multiple: false,
-      filters: [
-        {
-          name: "Config Files",
-          extensions: ["json", "jsonc", "yaml", "yml", "toml"],
-        },
-      ],
-    });
-
-    if (!selected) return;
-
-    const filePath = selected as string;
-
-    try {
-      const result = await invoke<OpenFile>("open_file", { path: filePath });
-      const format = detectFormat(filePath);
-      const parsed = parseContent(result.content, format);
-
-      if (parsed.error) {
-        setValidationErrors([
-          {
-            path: "/",
-            message: parsed.error,
-            severity: supportsStructuredEditing(format) ? "error" : "warning",
-          },
-        ]);
-        setConfigData(null);
-        setConfigRootKind(null);
-      } else {
-        setConfigData(parsed.data);
-        setConfigRootKind(parsed.rootKind);
-        setValidationErrors([]);
-      }
-
-      setCurrentFile({
-        path: filePath,
-        content: result.content,
-        format,
-        fileName: getFileName(filePath),
-      });
-      setOriginalContent(result.content);
-      setRawContent(result.content);
-      setDirty(false);
-      setEditorMode(
-        parsed.data && parsed.rootKind === "object" && supportsVisualEditing(format)
-          ? "form"
-          : "raw"
-      );
-    } catch (e) {
-      setValidationErrors([
-        { path: "/", message: String(e), severity: "error" },
-      ]);
-    }
-  }
+  const { dirty, currentFile } = useAppStore();
 
   return (
     <div className="toolbar-cluster toolbar-cluster-start">
       <button
         id="open-file-btn"
-        onClick={handleOpenFile}
+        onClick={openFileIntoStore}
         className="toolbar-button toolbar-button-primary"
         title="Open file (Cmd+O)"
       >

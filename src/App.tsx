@@ -1,17 +1,16 @@
-import { useEffect, useCallback, useMemo } from "react";
-import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
-import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useCallback, useMemo, useRef } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./App.css";
 import { useAppStore } from "@/lib/state/store";
-import { detectFormat, getFileName, parseContent, supportsStructuredEditing, supportsVisualEditing } from "@/lib/parse";
 import { getDataSections } from "@/lib/schema";
-import type { OpenFile } from "@/types";
 import { cn } from "@/lib/utils";
 import { useSystemTheme } from "@/lib/theme/useSystemTheme";
+import { confirmDiscardUnsavedChanges, openFileIntoStore } from "@/lib/fileSession";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ModeTabs } from "@/components/layout/ModeTabs";
 import { StatusBar } from "@/components/layout/StatusBar";
 import { WelcomeScreen } from "@/components/layout/WelcomeScreen";
+import { SaveFeedbackToast } from "@/components/layout/SaveFeedbackToast";
 import { FileOpener } from "@/components/file/FileOpener";
 import { SaveControls } from "@/components/file/SaveControls";
 import { FormEditor } from "@/components/editors/FormEditor";
@@ -30,6 +29,7 @@ function App() {
     activeSection,
     setActiveSection,
   } = useAppStore();
+  const allowWindowCloseRef = useRef(false);
 
   const sidebarSections = useMemo(
     () => (configRootKind === "object" ? getDataSections(configData) : []),
@@ -47,61 +47,7 @@ function App() {
   }, [activeSection, setActiveSection, sidebarSections]);
 
   const handleOpenFile = useCallback(async () => {
-    const selected = await dialogOpen({
-      multiple: false,
-      filters: [
-        {
-          name: "Config Files",
-          extensions: ["json", "jsonc", "yaml", "yml", "toml"],
-        },
-      ],
-    });
-
-    if (!selected) return;
-
-    const filePath = selected as string;
-
-    try {
-      const result = await invoke<OpenFile>("open_file", { path: filePath });
-      const format = detectFormat(filePath);
-      const parsed = parseContent(result.content, format);
-      const store = useAppStore.getState();
-
-        if (parsed.error) {
-          store.setValidationErrors([
-            {
-            path: "/",
-            message: parsed.error,
-            severity: supportsStructuredEditing(format) ? "error" : "warning",
-          },
-          ]);
-          store.setConfigData(null);
-          store.setConfigRootKind(null);
-        } else {
-          store.setConfigData(parsed.data);
-          store.setConfigRootKind(parsed.rootKind);
-          store.setValidationErrors([]);
-        }
-
-      store.setCurrentFile({
-        path: filePath,
-        content: result.content,
-        format,
-        fileName: getFileName(filePath),
-      });
-        store.setOriginalContent(result.content);
-        store.setRawContent(result.content);
-        store.setDirty(false);
-        store.setEditorMode(
-          parsed.data && parsed.rootKind === "object" && supportsVisualEditing(format)
-            ? "form"
-            : "raw"
-        );
-      } catch (e) {
-      useAppStore.getState().setValidationErrors([
-        { path: "/", message: String(e), severity: "error" },
-      ]);
-    }
+    await openFileIntoStore();
   }, []);
 
   useEffect(() => {
@@ -123,6 +69,60 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleOpenFile]);
 
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!useAppStore.getState().dirty) {
+        return;
+      }
+
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  useEffect(() => {
+    if (!("__TAURI_INTERNALS__" in window)) {
+      return;
+    }
+
+    let active = true;
+    let unlisten: (() => void) | undefined;
+    const appWindow = getCurrentWindow();
+
+    appWindow.onCloseRequested(async (event) => {
+      if (allowWindowCloseRef.current || !useAppStore.getState().dirty) {
+        return;
+      }
+
+      event.preventDefault();
+      const shouldDiscard = await confirmDiscardUnsavedChanges(
+        "Discard your unsaved changes and close the window?"
+      );
+
+      if (!shouldDiscard) {
+        return;
+      }
+
+      allowWindowCloseRef.current = true;
+      await appWindow.close();
+    }).then((cleanup) => {
+      if (!active) {
+        cleanup();
+        return;
+      }
+
+      unlisten = cleanup;
+    });
+
+    return () => {
+      active = false;
+      unlisten?.();
+    };
+  }, []);
+
   const renderEditor = () => {
     switch (editorMode) {
       case "form":
@@ -140,6 +140,7 @@ function App() {
 
   return (
     <div className="app-shell">
+      <SaveFeedbackToast />
       <div className="app-topbar-shell shrink-0">
         <div className="app-topbar-panel">
           <FileOpener />
