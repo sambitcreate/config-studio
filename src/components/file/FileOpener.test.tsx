@@ -35,6 +35,8 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
     editorMode: "form",
     validationErrors: [],
     recentFiles: [],
+    backups: [],
+    isLoadingBackups: false,
     isSaving: false,
     lastSaveResult: null,
     activeSection: "",
@@ -103,5 +105,31 @@ describe("FileOpener", () => {
       configData: { name: "after" },
       dirty: false,
     });
+  });
+
+  it("opens a recent file from the recent-files menu", async () => {
+    mockConfirm.mockResolvedValue(true);
+    mockInvoke.mockResolvedValue({
+      path: "/tmp/older.json",
+      content: '{"name":"older"}',
+      format: "json",
+    });
+
+    resetStore({
+      dirty: false,
+      recentFiles: ["/tmp/current.json", "/tmp/older.json"],
+    });
+
+    render(<FileOpener />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: /Recent files/i }));
+    await user.click(screen.getByRole("button", { name: /older\.json/i }));
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith("open_file", { path: "/tmp/older.json" });
+    });
+
+    expect(useAppStore.getState().currentFile?.path).toBe("/tmp/older.json");
   });
 });

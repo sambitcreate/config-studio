@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use tauri::command;
 use tauri::Manager;
@@ -46,6 +47,17 @@ fn get_backup_dir(app_data_dir: &Path) -> PathBuf {
     backup_dir
 }
 
+fn encode_path_for_backup_dir(path: &str) -> String {
+    path.as_bytes()
+        .iter()
+        .map(|byte| format!("{:02x}", byte))
+        .collect()
+}
+
+fn get_file_backup_dir(app_data_dir: &Path, path: &str) -> PathBuf {
+    get_backup_dir(app_data_dir).join(encode_path_for_backup_dir(path))
+}
+
 fn save_file_with_backup(
     app_data_dir: &Path,
     path: &str,
@@ -56,7 +68,9 @@ fn save_file_with_backup(
         return Err("File does not exist".to_string());
     }
 
-    let backup_dir = get_backup_dir(app_data_dir);
+    let backup_dir = get_file_backup_dir(app_data_dir, path);
+    fs::create_dir_all(&backup_dir)
+        .map_err(|e| format!("Failed to create backup directory: {}", e))?;
     let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S").to_string();
 
     let file_name = original_path
@@ -87,7 +101,7 @@ fn save_file_with_backup(
     })
 }
 
-fn list_backups_in_dir(backup_dir: &Path) -> Result<Vec<BackupInfo>, String> {
+fn list_backups_in_dir(backup_dir: &Path, original_path: &str) -> Result<Vec<BackupInfo>, String> {
     if !backup_dir.exists() {
         return Ok(vec![]);
     }
@@ -111,7 +125,7 @@ fn list_backups_in_dir(backup_dir: &Path) -> Result<Vec<BackupInfo>, String> {
                 backups.push(BackupInfo {
                     path: path.to_string_lossy().to_string(),
                     timestamp,
-                    original_path: String::new(),
+                    original_path: original_path.to_string(),
                 });
             }
         }
@@ -147,14 +161,14 @@ pub fn save_file(
 }
 
 #[command]
-pub fn list_backups(app: tauri::AppHandle) -> Result<Vec<BackupInfo>, String> {
+pub fn list_backups(app: tauri::AppHandle, target_path: String) -> Result<Vec<BackupInfo>, String> {
     let app_data_dir = app
         .path()
         .app_data_dir()
         .map_err(|e| format!("Failed to get app data dir: {}", e))?;
 
-    let backup_dir = get_backup_dir(&app_data_dir);
-    list_backups_in_dir(&backup_dir)
+    let backup_dir = get_file_backup_dir(&app_data_dir, &target_path);
+    list_backups_in_dir(&backup_dir, &target_path)
 }
 
 #[command]
@@ -176,6 +190,17 @@ pub fn restore_backup(backup_path: String, target_path: String) -> Result<SaveRe
         backup_path: None,
         error: None,
     })
+}
+
+#[command]
+pub fn delete_backup(backup_path: String) -> Result<bool, String> {
+    match fs::remove_file(&backup_path) {
+        Ok(_) => Ok(true),
+        Err(error) if error.kind() == ErrorKind::NotFound => {
+            Err("Backup file does not exist".to_string())
+        }
+        Err(error) => Err(format!("Failed to delete backup: {}", error)),
+    }
 }
 
 #[command]
@@ -262,13 +287,59 @@ mod tests {
             .expect("write new backup");
         fs::write(backup_dir.join("ignore.txt"), "three").expect("write ignored file");
 
-        let backups = list_backups_in_dir(&backup_dir).expect("list backups");
+        let backups =
+            list_backups_in_dir(&backup_dir, "/tmp/settings.json").expect("list backups");
 
         assert_eq!(backups.len(), 2);
         assert_eq!(backups[0].timestamp, "20240201_010101");
         assert_eq!(backups[1].timestamp, "20240101_010101");
+        assert!(backups.iter().all(|backup| backup.original_path == "/tmp/settings.json"));
 
         fs::remove_dir_all(&backup_dir).expect("remove backup dir");
+    }
+
+    #[test]
+    fn save_file_with_backup_scopes_backups_by_original_path() {
+        let app_data_dir = temp_path("scoped-save-app-data");
+        let first_dir = temp_path("scoped-save-first");
+        let second_dir = temp_path("scoped-save-second");
+        fs::create_dir_all(&app_data_dir).expect("create app data dir");
+        fs::create_dir_all(&first_dir).expect("create first dir");
+        fs::create_dir_all(&second_dir).expect("create second dir");
+
+        let first_file = first_dir.join("settings.json");
+        let second_file = second_dir.join("settings.json");
+        fs::write(&first_file, "{\"name\":\"first-before\"}").expect("write first file");
+        fs::write(&second_file, "{\"name\":\"second-before\"}").expect("write second file");
+
+        let first_path = first_file.to_string_lossy().to_string();
+        let second_path = second_file.to_string_lossy().to_string();
+
+        save_file_with_backup(&app_data_dir, &first_path, "{\"name\":\"first-after\"}")
+            .expect("save first file");
+        save_file_with_backup(&app_data_dir, &second_path, "{\"name\":\"second-after\"}")
+            .expect("save second file");
+
+        let first_backups = list_backups_in_dir(
+            &get_file_backup_dir(&app_data_dir, &first_path),
+            &first_path,
+        )
+        .expect("list first backups");
+        let second_backups = list_backups_in_dir(
+            &get_file_backup_dir(&app_data_dir, &second_path),
+            &second_path,
+        )
+        .expect("list second backups");
+
+        assert_eq!(first_backups.len(), 1);
+        assert_eq!(second_backups.len(), 1);
+        assert_eq!(first_backups[0].original_path, first_path);
+        assert_eq!(second_backups[0].original_path, second_path);
+        assert_ne!(first_backups[0].path, second_backups[0].path);
+
+        fs::remove_dir_all(&app_data_dir).expect("remove app data dir");
+        fs::remove_dir_all(&first_dir).expect("remove first dir");
+        fs::remove_dir_all(&second_dir).expect("remove second dir");
     }
 
     #[test]
@@ -294,6 +365,23 @@ mod tests {
         );
 
         fs::remove_dir_all(&dir).expect("remove restore dir");
+    }
+
+    #[test]
+    fn delete_backup_removes_backup_file() {
+        let dir = temp_path("delete-backup");
+        fs::create_dir_all(&dir).expect("create delete dir");
+
+        let backup_path = dir.join("settings.json_20240101_010101.bak");
+        fs::write(&backup_path, "{\"name\":\"from-backup\"}").expect("write backup file");
+
+        let deleted =
+            delete_backup(backup_path.to_string_lossy().to_string()).expect("delete backup");
+
+        assert!(deleted);
+        assert!(!backup_path.exists());
+
+        fs::remove_dir_all(&dir).expect("remove delete dir");
     }
 
     #[test]

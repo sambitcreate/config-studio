@@ -1,11 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import { useAppStore } from "@/lib/state/store";
+import { refreshBackupsForCurrentFile } from "@/lib/backups";
 import { confirmDiscardUnsavedChanges } from "@/lib/fileSession";
 import { parseContent, serializeJson, supportsStructuredEditing } from "@/lib/parse";
 import { validateBasicJson } from "@/lib/validation";
 import type { SaveResult } from "@/types";
 import { Save, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BackupsMenu } from "@/components/file/BackupsMenu";
 
 export function SaveControls() {
   const {
@@ -84,6 +86,7 @@ export function SaveControls() {
         } else {
           setValidationErrors([]);
         }
+        await refreshBackupsForCurrentFile();
       }
     } catch (e) {
       setLastSaveResult({
@@ -130,6 +133,7 @@ export function SaveControls() {
 
   return (
     <div className="toolbar-cluster toolbar-cluster-end">
+      <BackupsMenu />
       <button
         onClick={handleRevert}
         disabled={!dirty}

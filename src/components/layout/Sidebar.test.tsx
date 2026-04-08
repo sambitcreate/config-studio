@@ -27,6 +27,8 @@ describe("Sidebar", () => {
       editorMode: "form",
       validationErrors: [],
       recentFiles: [],
+      backups: [],
+      isLoadingBackups: false,
       isSaving: false,
       lastSaveResult: null,
       activeSection: "mcp",

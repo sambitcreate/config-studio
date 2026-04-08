@@ -81,7 +81,10 @@ export async function openFileIntoStore() {
     return false;
   }
 
-  const filePath = selected as string;
+  return openRecentFileIntoStore(selected as string);
+}
+
+export async function openRecentFileIntoStore(filePath: string) {
   const { dirty } = useAppStore.getState();
 
   if (dirty) {
@@ -95,4 +98,15 @@ export async function openFileIntoStore() {
   }
 
   return loadFileIntoStore(filePath);
+}
+
+export async function reopenMostRecentFileIntoStore() {
+  const { currentFile, recentFiles } = useAppStore.getState();
+  const nextPath = recentFiles.find((path) => path !== currentFile?.path) ?? recentFiles[0];
+
+  if (!nextPath) {
+    return false;
+  }
+
+  return openRecentFileIntoStore(nextPath);
 }

@@ -5,7 +5,12 @@ import { useAppStore } from "@/lib/state/store";
 import { getDataSections } from "@/lib/schema";
 import { cn } from "@/lib/utils";
 import { useSystemTheme } from "@/lib/theme/useSystemTheme";
-import { confirmDiscardUnsavedChanges, openFileIntoStore } from "@/lib/fileSession";
+import { refreshBackupsForCurrentFile } from "@/lib/backups";
+import {
+  confirmDiscardUnsavedChanges,
+  openFileIntoStore,
+  reopenMostRecentFileIntoStore,
+} from "@/lib/fileSession";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ModeTabs } from "@/components/layout/ModeTabs";
 import { StatusBar } from "@/components/layout/StatusBar";
@@ -54,9 +59,14 @@ function App() {
     function handleKeyDown(e: KeyboardEvent) {
       const isCmd = e.metaKey || e.ctrlKey;
 
-      if (isCmd && e.key === "o") {
+      if (isCmd && e.key === "o" && !e.shiftKey) {
         e.preventDefault();
         handleOpenFile();
+      }
+
+      if (isCmd && e.shiftKey && e.key.toLowerCase() === "o") {
+        e.preventDefault();
+        void reopenMostRecentFileIntoStore();
       }
 
       if (isCmd && e.key === "s" && !e.shiftKey) {
@@ -68,6 +78,10 @@ function App() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleOpenFile]);
+
+  useEffect(() => {
+    void refreshBackupsForCurrentFile();
+  }, [currentFile?.path]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {

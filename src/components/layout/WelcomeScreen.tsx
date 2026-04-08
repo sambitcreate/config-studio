@@ -1,6 +1,11 @@
-import { BookOpen, Flower2, FolderOpen, Phone } from "lucide-react";
+import { BookOpen, Flower2, FolderOpen, History, Phone } from "lucide-react";
+import { openRecentFileIntoStore } from "@/lib/fileSession";
+import { useAppStore } from "@/lib/state/store";
+import { getFileName } from "@/lib/parse";
 
 export function WelcomeScreen() {
+  const recentFiles = useAppStore((state) => state.recentFiles);
+
   return (
     <div className="welcome-shell">
       <div className="welcome-card">
@@ -36,8 +41,31 @@ export function WelcomeScreen() {
 
         <div className="welcome-shortcut-row">
           <kbd className="status-kbd">Cmd+O</kbd>
+          <kbd className="status-kbd">Cmd+Shift+O</kbd>
           <span className="welcome-shortcut-text">keyboard shortcut</span>
         </div>
+
+        {recentFiles.length > 0 && (
+          <div className="welcome-inset-card welcome-recents-card">
+            <div className="welcome-recents-header">
+              <History className="w-4 h-4" />
+              <span>Recent files</span>
+            </div>
+            <div className="welcome-recents-list">
+              {recentFiles.slice(0, 5).map((path) => (
+                <button
+                  type="button"
+                  key={path}
+                  className="welcome-recent-item"
+                  onClick={() => openRecentFileIntoStore(path)}
+                >
+                  <span className="welcome-recent-name">{getFileName(path)}</span>
+                  <span className="welcome-recent-path">{path}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="task-list-preview">
