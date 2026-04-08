@@ -3,8 +3,9 @@ import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { useAppStore } from "@/lib/state/store";
-import { detectFormat, getFileName, parseContent } from "@/lib/parse";
+import { detectFormat, getFileName, parseContent, supportsStructuredEditing, supportsVisualEditing } from "@/lib/parse";
 import type { OpenFile } from "@/types";
+import { cn } from "@/lib/utils";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ModeTabs } from "@/components/layout/ModeTabs";
 import { StatusBar } from "@/components/layout/StatusBar";
@@ -45,7 +46,11 @@ function App() {
 
       if (parsed.error) {
         store.setValidationErrors([
-          { path: "/", message: parsed.error, severity: "error" },
+          {
+            path: "/",
+            message: parsed.error,
+            severity: supportsStructuredEditing(format) ? "error" : "warning",
+          },
         ]);
         store.setConfigData(null);
       } else {
@@ -60,8 +65,9 @@ function App() {
         fileName: getFileName(filePath),
       });
       store.setOriginalContent(result.content);
+      store.setRawContent(result.content);
       store.setDirty(false);
-      store.setEditorMode(parsed.data ? "form" : "raw");
+      store.setEditorMode(parsed.data && supportsVisualEditing(format) ? "form" : "raw");
     } catch (e) {
       useAppStore.getState().setValidationErrors([
         { path: "/", message: String(e), severity: "error" },
@@ -104,16 +110,18 @@ function App() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-background">
-      <div className="h-11 bg-card border-b border-border flex items-center justify-between px-3 shrink-0">
-        <FileOpener />
-        <ModeTabs />
-        <SaveControls />
+    <div className="app-shell">
+      <div className="app-topbar-shell shrink-0">
+        <div className="app-topbar-panel">
+          <FileOpener />
+          <ModeTabs />
+          <SaveControls />
+        </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className={cn("app-body", currentFile && "app-body-with-sidebar")}>
         {currentFile && <Sidebar />}
-        <main className="flex-1 overflow-hidden">
+        <main className="app-main">
           {currentFile ? renderEditor() : <WelcomeScreen />}
         </main>
       </div>
