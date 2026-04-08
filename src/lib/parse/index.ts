@@ -6,12 +6,22 @@ interface ParseResult {
   rootKind: ConfigRootKind | null;
 }
 
+export interface SerializeJsonOptions {
+  sortKeys?: boolean;
+}
+
+export interface ContentTransformResult {
+  content: string;
+  error: string | null;
+  rootKind: ConfigRootKind | null;
+}
+
 export function supportsStructuredEditing(format: FileFormat): boolean {
   return format === "json" || format === "jsonc";
 }
 
 export function supportsVisualEditing(format: FileFormat): boolean {
-  return format === "json";
+  return supportsStructuredEditing(format);
 }
 
 export function detectFormat(filePath: string): FileFormat {
@@ -21,6 +31,27 @@ export function detectFormat(filePath: string): FileFormat {
   if (lower.endsWith(".yaml") || lower.endsWith(".yml")) return "yaml";
   if (lower.endsWith(".toml")) return "toml";
   return "json";
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function sortJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sortJsonValue);
+  }
+
+  if (!isPlainObject(value)) {
+    return value;
+  }
+
+  return Object.keys(value)
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+    .reduce<Record<string, unknown>>((sorted, key) => {
+      sorted[key] = sortJsonValue(value[key]);
+      return sorted;
+    }, {});
 }
 
 export function parseJson(content: string): ParseResult {
@@ -48,18 +79,72 @@ export function parseJson(content: string): ParseResult {
 
 export function serializeJson(
   data: Record<string, unknown>,
-  rootKind: ConfigRootKind = "object"
+  rootKind: ConfigRootKind = "object",
+  options: SerializeJsonOptions = {}
 ): string {
-  const output = rootKind === "array" ? data._root : data;
-  return JSON.stringify(output, null, 2);
+  const output = rootKind === "array" && Array.isArray(data._root) ? data._root : data;
+  const normalizedOutput = options.sortKeys ? sortJsonValue(output) : output;
+  return JSON.stringify(normalizedOutput, null, 2) ?? "";
 }
 
-export function stripJsoncComments(content: string): string {
+function getUnsupportedOutputMessage(format: FileFormat): string {
+  return `${format.toUpperCase()} output is not available yet.`;
+}
+
+function buildTransformResult(
+  sourceContent: string,
+  parsed: ParseResult,
+  targetFormat: FileFormat,
+  options: SerializeJsonOptions
+): ContentTransformResult {
+  if (parsed.error || !parsed.data) {
+    return {
+      content: sourceContent,
+      error: parsed.error ?? "Unable to parse content.",
+      rootKind: parsed.rootKind,
+    };
+  }
+
+  if (!supportsStructuredEditing(targetFormat)) {
+    return {
+      content: sourceContent,
+      error: getUnsupportedOutputMessage(targetFormat),
+      rootKind: parsed.rootKind,
+    };
+  }
+
+  return {
+    content: serializeJson(parsed.data, parsed.rootKind ?? "object", options),
+    error: null,
+    rootKind: parsed.rootKind,
+  };
+}
+
+export function convertContent(
+  content: string,
+  sourceFormat: FileFormat,
+  targetFormat: FileFormat,
+  options: SerializeJsonOptions = {}
+): ContentTransformResult {
+  const parsed = parseContent(content, sourceFormat);
+  return buildTransformResult(content, parsed, targetFormat, options);
+}
+
+export function prettifyContent(
+  content: string,
+  format: FileFormat,
+  options: SerializeJsonOptions = {}
+): ContentTransformResult {
+  return convertContent(content, format, format, options);
+}
+
+function analyzeJsoncContent(content: string): { stripped: string; hasComments: boolean } {
   let result = "";
   let inString = false;
   let escaped = false;
   let inLineComment = false;
   let inBlockComment = false;
+  let hasComments = false;
 
   for (let i = 0; i < content.length; i++) {
     const char = content[i];
@@ -113,12 +198,14 @@ export function stripJsoncComments(content: string): string {
     }
 
     if (char === "/" && next === "/") {
+      hasComments = true;
       inLineComment = true;
       i++;
       continue;
     }
 
     if (char === "/" && next === "*") {
+      hasComments = true;
       inBlockComment = true;
       i++;
       continue;
@@ -127,7 +214,15 @@ export function stripJsoncComments(content: string): string {
     result += char;
   }
 
-  return result.trim();
+  return { stripped: result.trim(), hasComments };
+}
+
+export function stripJsoncComments(content: string): string {
+  return analyzeJsoncContent(content).stripped;
+}
+
+export function hasJsoncComments(content: string): boolean {
+  return analyzeJsoncContent(content).hasComments;
 }
 
 export function parseContent(content: string, format: FileFormat): ParseResult {
@@ -142,7 +237,7 @@ export function parseContent(content: string, format: FileFormat): ParseResult {
     case "toml":
       return {
         data: null,
-        error: `${format.toUpperCase()} structured editing is not available yet. Raw mode is still available.`,
+        error: `${format.toUpperCase()} structured editing is not available yet. Raw mode is safest for now, and richer support is planned.`,
         rootKind: null,
       };
     default:

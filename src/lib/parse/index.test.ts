@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  convertContent,
   detectFormat,
   getFileName,
+  hasJsoncComments,
   parseContent,
   parseJson,
+  prettifyContent,
   serializeJson,
   stripJsoncComments,
   supportsStructuredEditing,
@@ -24,7 +27,7 @@ describe("parse helpers", () => {
     expect(supportsStructuredEditing("jsonc")).toBe(true);
     expect(supportsStructuredEditing("yaml")).toBe(false);
     expect(supportsVisualEditing("json")).toBe(true);
-    expect(supportsVisualEditing("jsonc")).toBe(false);
+    expect(supportsVisualEditing("jsonc")).toBe(true);
   });
 
   it("parses object roots and wraps array roots", () => {
@@ -94,16 +97,30 @@ describe("parse helpers", () => {
     });
   });
 
+  it("detects whether a JSONC document contains comments", () => {
+    expect(hasJsoncComments('{ "name": "plain json" }')).toBe(false);
+    expect(
+      hasJsoncComments(
+        [
+          "{",
+          "  // comment",
+          '  "url": "https://example.com"',
+          "}",
+        ].join("\n")
+      )
+    ).toBe(true);
+  });
+
   it("returns raw-mode guidance for unsupported structured formats", () => {
     expect(parseContent("name: value", "yaml")).toEqual({
       data: null,
-      error: "YAML structured editing is not available yet. Raw mode is still available.",
+      error: "YAML structured editing is not available yet. Raw mode is safest for now, and richer support is planned.",
       rootKind: null,
     });
 
     expect(parseContent("key = 'value'", "toml")).toEqual({
       data: null,
-      error: "TOML structured editing is not available yet. Raw mode is still available.",
+      error: "TOML structured editing is not available yet. Raw mode is safest for now, and richer support is planned.",
       rootKind: null,
     });
   });
@@ -122,6 +139,97 @@ describe("parse helpers", () => {
       "  3",
       "]",
     ].join("\n"));
+  });
+
+  it("can stable-sort keys before serializing nested JSON-like data", () => {
+    expect(
+      serializeJson(
+        {
+          z: 1,
+          a: {
+            d: 4,
+            b: 2,
+          },
+          items: [{ y: 2, x: 1 }],
+        },
+        "object",
+        { sortKeys: true }
+      )
+    ).toBe([
+      "{",
+      '  "a": {',
+      '    "b": 2,',
+      '    "d": 4',
+      "  },",
+      '  "items": [',
+      "    {",
+      '      "x": 1,',
+      '      "y": 2',
+      "    }",
+      "  ],",
+      '  "z": 1',
+      "}",
+    ].join("\n"));
+  });
+
+  it("prettifies JSON and JSONC content through a shared transform helper", () => {
+    expect(
+      prettifyContent(
+        [
+          "{",
+          "  // comment",
+          '  "b": 2,',
+          '  "a": { "z": 3, "y": 1 }',
+          "}",
+        ].join("\n"),
+        "jsonc",
+        { sortKeys: true }
+      )
+    ).toEqual({
+      content: [
+        "{",
+        '  "a": {',
+        '    "y": 1,',
+        '    "z": 3',
+        "  },",
+        '  "b": 2',
+        "}",
+      ].join("\n"),
+      error: null,
+      rootKind: "object",
+    });
+  });
+
+  it("converts structured content only when the target format is supported", () => {
+    expect(
+      convertContent(
+        [
+          "{",
+          "  // source comment",
+          '  "z": 1,',
+          '  "a": 2',
+          "}",
+        ].join("\n"),
+        "jsonc",
+        "json",
+        { sortKeys: true }
+      )
+    ).toEqual({
+      content: [
+        "{",
+        '  "a": 2,',
+        '  "z": 1',
+        "}",
+      ].join("\n"),
+      error: null,
+      rootKind: "object",
+    });
+
+    expect(convertContent('{"name":"OpenCode"}', "json", "yaml")).toEqual({
+      content: '{"name":"OpenCode"}',
+      error: "YAML output is not available yet.",
+      rootKind: "object",
+    });
   });
 
   it("extracts file names from paths", () => {
