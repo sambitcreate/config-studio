@@ -83,7 +83,7 @@ function DeletableControlInner(props: ControlProps) {
   const lastSegment = path?.split(".").pop() ?? "field";
 
   return (
-    <div className="deletable-field-row">
+    <div className="deletable-field-row" data-form-path={path || undefined}>
       <div className="deletable-field-main">
         <InnerControl {...props} />
       </div>

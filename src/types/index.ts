@@ -27,6 +27,13 @@ export interface ValidationError {
   path: string;
   message: string;
   severity: "error" | "warning";
+  line?: number;
+  column?: number;
+}
+
+export interface ValidationFocusRequest {
+  error: ValidationError;
+  sequence: number;
 }
 
 export type EditorMode = "form" | "structure" | "raw" | "diff";
@@ -70,6 +77,8 @@ export interface AppState {
   dirty: boolean;
   editorMode: EditorMode;
   validationErrors: ValidationError[];
+  validationPanelOpen: boolean;
+  validationFocusRequest: ValidationFocusRequest | null;
   recentFiles: string[];
   backups: BackupInfo[];
   isLoadingBackups: boolean;

@@ -21,6 +21,7 @@ import type {
   SaveResult,
   ThemePreference,
   ValidationError,
+  ValidationFocusRequest,
 } from "@/types";
 
 interface AppStore {
@@ -32,6 +33,8 @@ interface AppStore {
   dirty: boolean;
   editorMode: EditorMode;
   validationErrors: ValidationError[];
+  validationPanelOpen: boolean;
+  validationFocusRequest: ValidationFocusRequest | null;
   recentFiles: string[];
   backups: BackupInfo[];
   isLoadingBackups: boolean;
@@ -49,6 +52,8 @@ interface AppStore {
   setDirty: (dirty: boolean) => void;
   setEditorMode: (mode: EditorMode) => void;
   setValidationErrors: (errors: ValidationError[]) => void;
+  setValidationPanelOpen: (open: boolean) => void;
+  requestValidationFocus: (error: ValidationError) => void;
   addRecentFile: (path: string) => void;
   setBackups: (backups: BackupInfo[]) => void;
   setIsLoadingBackups: (loading: boolean) => void;
@@ -77,6 +82,8 @@ function createInitialState() {
     dirty: false,
     editorMode: "form" as EditorMode,
     validationErrors: [],
+    validationPanelOpen: false,
+    validationFocusRequest: null,
     recentFiles: [],
     backups: [],
     isLoadingBackups: false,
@@ -145,7 +152,21 @@ export const useAppStore = create<AppStore>()(
 
       setEditorMode: (mode) => set({ editorMode: mode }),
 
-      setValidationErrors: (errors) => set({ validationErrors: errors }),
+      setValidationErrors: (errors) =>
+        set((state) => ({
+          validationErrors: errors,
+          validationPanelOpen: errors.length === 0 ? false : state.validationPanelOpen,
+        })),
+
+      setValidationPanelOpen: (validationPanelOpen) => set({ validationPanelOpen }),
+
+      requestValidationFocus: (error) =>
+        set((state) => ({
+          validationFocusRequest: {
+            error,
+            sequence: (state.validationFocusRequest?.sequence ?? 0) + 1,
+          },
+        })),
 
       addRecentFile: (path) =>
         set((state) => {
@@ -224,6 +245,8 @@ export const useAppStore = create<AppStore>()(
           configRootKind: null,
           dirty: false,
           validationErrors: [],
+          validationPanelOpen: false,
+          validationFocusRequest: null,
           backups: [],
           isLoadingBackups: false,
           lastSaveResult: null,

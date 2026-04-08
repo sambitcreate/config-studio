@@ -1,4 +1,5 @@
 import Ajv from "ajv";
+import { createValidationError } from "./utils";
 
 const ajv = new Ajv({ allErrors: true, strict: false });
 
@@ -7,6 +8,8 @@ export interface ValidationResult {
   errors: Array<{
     path: string;
     message: string;
+    line?: number;
+    column?: number;
   }>;
 }
 
@@ -36,14 +39,10 @@ export function validateBasicJson(content: string): ValidationResult {
     JSON.parse(content);
     return { valid: true, errors: [] };
   } catch (e) {
+    const error = createValidationError("/", (e as Error).message, "error", content);
     return {
       valid: false,
-      errors: [
-        {
-          path: "/",
-          message: (e as Error).message,
-        },
-      ],
+      errors: [error],
     };
   }
 }

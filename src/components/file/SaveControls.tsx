@@ -5,6 +5,7 @@ import { refreshBackupsForCurrentFile } from "@/lib/backups";
 import { confirmDiscardUnsavedChanges } from "@/lib/fileSession";
 import { parseContent, serializeJson, supportsStructuredEditing } from "@/lib/parse";
 import { validateBasicJson } from "@/lib/validation";
+import { createValidationError } from "@/lib/validation/utils";
 import type { SaveResult } from "@/types";
 import { Save, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -51,6 +52,8 @@ export function SaveControls() {
             path: e.path,
             message: e.message,
             severity: "error" as const,
+            line: e.line,
+            column: e.column,
           }))
         );
         return;
@@ -61,7 +64,7 @@ export function SaveControls() {
       const parsed = parseContent(contentToSave, currentFile.format);
       if (parsed.error) {
         setValidationErrors([
-          { path: "/", message: parsed.error, severity: "error" },
+          createValidationError("/", parsed.error, "error", contentToSave),
         ]);
         return;
       }
@@ -88,7 +91,7 @@ export function SaveControls() {
         setDirty(false);
         if (parsed.error) {
           setValidationErrors([
-            { path: "/", message: parsed.error, severity: "error" },
+            createValidationError("/", parsed.error, "error", contentToSave),
           ]);
         } else {
           setValidationErrors([]);
@@ -124,11 +127,12 @@ export function SaveControls() {
     setConfigRootKind(parsed.rootKind);
     if (parsed.error) {
       setValidationErrors([
-        {
-          path: "/",
-          message: parsed.error,
-          severity: supportsStructuredEditing(currentFile.format) ? "error" : "warning",
-        },
+        createValidationError(
+          "/",
+          parsed.error,
+          supportsStructuredEditing(currentFile.format) ? "error" : "warning",
+          originalContent
+        ),
       ]);
     } else {
       setValidationErrors([]);
