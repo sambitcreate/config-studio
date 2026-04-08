@@ -1,15 +1,23 @@
+import { lazy, Suspense } from "react";
 import { useAppStore } from "@/lib/state/store";
-import { DiffEditor } from "@monaco-editor/react";
+
+const MonacoDiffEditor = lazy(() =>
+  import("@monaco-editor/react").then((m) => ({ default: m.DiffEditor }))
+);
 
 export function DiffViewer() {
-  const { originalContent, configData } = useAppStore();
+  const { originalContent, rawContent, currentFile } = useAppStore();
 
-  const modified = configData ? JSON.stringify(configData, null, 2) : "";
+  const editorLanguage = currentFile?.format === "jsonc"
+    ? "json"
+    : currentFile?.format === "toml"
+      ? "ini"
+      : currentFile?.format ?? "json";
 
-  if (!originalContent && !configData) {
+  if (!originalContent && !rawContent) {
     return (
-      <div className="flex items-center justify-center h-full p-8">
-        <div className="neu-card p-6 text-center text-muted-foreground text-sm">
+      <div className="editor-empty-state">
+        <div className="editor-empty-card">
           Open a file to view diff
         </div>
       </div>
@@ -17,23 +25,35 @@ export function DiffViewer() {
   }
 
   return (
-    <div className="h-full w-full">
-      <DiffEditor
-        height="100%"
-        original={originalContent}
-        modified={modified}
-        language="json"
-        theme="vs-dark"
-        options={{
-          readOnly: true,
-          minimap: { enabled: false },
-          fontSize: 13,
-          lineNumbers: "on",
-          scrollBeyondLastLine: false,
-          automaticLayout: true,
-          renderSideBySide: true,
-        }}
-      />
+    <div className="editor-panel-shell">
+      <Suspense
+        fallback={
+          <div className="editor-empty-state">
+            <div className="editor-empty-card">
+              Loading diff...
+            </div>
+          </div>
+        }
+      >
+        <div className="editor-panel-card">
+          <MonacoDiffEditor
+            height="100%"
+            original={originalContent}
+            modified={rawContent}
+            language={editorLanguage}
+            theme="vs"
+            options={{
+              readOnly: true,
+              minimap: { enabled: false },
+              fontSize: 13,
+              lineNumbers: "on",
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              renderSideBySide: true,
+            }}
+          />
+        </div>
+      </Suspense>
     </div>
   );
 }
