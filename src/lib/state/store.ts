@@ -1,5 +1,12 @@
 import { create } from "zustand";
-import type { ConfigRootKind, EditorMode, OpenFile, SaveResult, ValidationError } from "@/types";
+import type {
+  BackupInfo,
+  ConfigRootKind,
+  EditorMode,
+  OpenFile,
+  SaveResult,
+  ValidationError,
+} from "@/types";
 
 interface AppStore {
   currentFile: OpenFile | null;
@@ -11,6 +18,8 @@ interface AppStore {
   editorMode: EditorMode;
   validationErrors: ValidationError[];
   recentFiles: string[];
+  backups: BackupInfo[];
+  isLoadingBackups: boolean;
   isSaving: boolean;
   lastSaveResult: SaveResult | null;
   activeSection: string;
@@ -24,6 +33,8 @@ interface AppStore {
   setEditorMode: (mode: EditorMode) => void;
   setValidationErrors: (errors: ValidationError[]) => void;
   addRecentFile: (path: string) => void;
+  setBackups: (backups: BackupInfo[]) => void;
+  setIsLoadingBackups: (loading: boolean) => void;
   setIsSaving: (saving: boolean) => void;
   setLastSaveResult: (result: SaveResult | null) => void;
   setActiveSection: (section: string) => void;
@@ -40,6 +51,8 @@ export const useAppStore = create<AppStore>((set) => ({
   editorMode: "form",
   validationErrors: [],
   recentFiles: [],
+  backups: [],
+  isLoadingBackups: false,
   isSaving: false,
   lastSaveResult: null,
   activeSection: "",
@@ -73,6 +86,10 @@ export const useAppStore = create<AppStore>((set) => ({
       return { recentFiles: [path, ...recent].slice(0, 10) };
     }),
 
+  setBackups: (backups) => set({ backups }),
+
+  setIsLoadingBackups: (isLoadingBackups) => set({ isLoadingBackups }),
+
   setIsSaving: (saving) => set({ isSaving: saving }),
 
   setLastSaveResult: (result) => set({ lastSaveResult: result }),
@@ -88,6 +105,8 @@ export const useAppStore = create<AppStore>((set) => ({
       configRootKind: null,
       dirty: false,
       validationErrors: [],
+      backups: [],
+      isLoadingBackups: false,
       lastSaveResult: null,
       activeSection: "",
     }),

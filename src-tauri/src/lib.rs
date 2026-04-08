@@ -11,6 +11,7 @@ pub fn run() {
             commands::save_file,
             commands::list_backups,
             commands::restore_backup,
+            commands::delete_backup,
             commands::validate_json,
         ])
         .run(tauri::generate_context!())

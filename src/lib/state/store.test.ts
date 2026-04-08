@@ -12,6 +12,8 @@ function resetStore() {
     editorMode: "form",
     validationErrors: [],
     recentFiles: [],
+    backups: [],
+    isLoadingBackups: false,
     isSaving: false,
     lastSaveResult: null,
     activeSection: "",
@@ -80,6 +82,7 @@ describe("useAppStore", () => {
       dirty: true,
       validationErrors: [{ path: "/", message: "bad", severity: "error" }],
       recentFiles: ["/tmp/config.json"],
+      backups: [{ path: "/tmp/backup", timestamp: "20260101_000000", original_path: "/tmp/config.json" }],
       lastSaveResult: { success: true, backup_path: "/tmp/backup", error: null },
     });
 
@@ -93,6 +96,7 @@ describe("useAppStore", () => {
       configRootKind: null,
       dirty: false,
       validationErrors: [],
+      backups: [],
       lastSaveResult: null,
       recentFiles: ["/tmp/config.json"],
     });

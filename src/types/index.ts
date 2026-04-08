@@ -39,6 +39,8 @@ export interface AppState {
   editorMode: EditorMode;
   validationErrors: ValidationError[];
   recentFiles: string[];
+  backups: BackupInfo[];
+  isLoadingBackups: boolean;
   isSaving: boolean;
   lastSaveResult: SaveResult | null;
 }
