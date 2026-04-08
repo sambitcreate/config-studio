@@ -5,64 +5,67 @@ import { defaultConfigSchema, defaultUiSchema } from "@/lib/schema";
 import { useEffect, useCallback } from "react";
 
 export function FormEditor() {
-  const { configData, setConfigData, setDirty, originalContent } = useAppStore();
+  const { configData, setConfigData, setRawContent, setDirty, originalContent } = useAppStore();
 
   const handleChange = useCallback(
     ({ data }: { data: Record<string, unknown> }) => {
       if (data !== undefined) {
         setConfigData(data);
         const serialized = JSON.stringify(data, null, 2);
+        setRawContent(serialized);
         setDirty(serialized !== originalContent);
       }
     },
-    [setConfigData, setDirty, originalContent]
+    [setConfigData, setDirty, setRawContent, originalContent]
   );
 
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = `
       .jsonforms-group {
-        margin-bottom: 1.25rem;
-        padding: 1rem;
-        border-radius: 12px;
-        background-color: var(--color-card);
-        box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.05), 0px 0px 1px rgba(0, 0, 0, 0.04);
+        margin-bottom: 1rem;
+        padding: 1.1rem 1.15rem;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.84);
+        border: 1px solid rgba(226, 226, 232, 0.9);
+        box-shadow: 0 18px 40px rgba(34, 34, 46, 0.06), 0 2px 6px rgba(34, 34, 46, 0.04);
       }
       .jsonforms-group label {
         font-weight: 600;
-        font-size: 0.8125rem;
-        margin-bottom: 0.75rem;
+        font-size: 0.88rem;
+        margin-bottom: 0.9rem;
         display: block;
         color: var(--color-foreground);
       }
       .jsonforms-group .group-items {
-        padding-left: 0.75rem;
-        border-left: 2px solid var(--color-border);
+        display: grid;
+        gap: 0.65rem;
       }
       [class*="MuiInput-root"], [class*="MuiOutlinedInput"] {
         color: var(--color-foreground) !important;
-        border-color: var(--color-border) !important;
-        border-radius: 8px !important;
+        border-radius: 20px !important;
+        background: rgba(255, 255, 255, 0.96) !important;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06) !important;
       }
       [class*="MuiInputBase-input"] {
         color: var(--color-foreground) !important;
-        padding: 8px 12px !important;
-        font-size: 0.8125rem !important;
+        padding: 12px 14px !important;
+        font-size: 0.88rem !important;
       }
       [class*="MuiOutlinedInput-notchedOutline"] {
-        border-color: var(--color-border) !important;
-        border-radius: 8px !important;
+        border-color: rgba(0, 0, 0, 0) !important;
+        border-radius: 20px !important;
       }
       [class*="MuiOutlinedInput-root"]:hover [class*="MuiOutlinedInput-notchedOutline"] {
-        border-color: var(--color-primary) !important;
+        border-color: rgba(0, 0, 0, 0) !important;
       }
       [class*="MuiOutlinedInput-root.Mui-focused"] [class*="MuiOutlinedInput-notchedOutline"] {
-        border-color: var(--color-primary) !important;
-        border-width: 2px !important;
+        border-color: rgba(48, 167, 255, 0.35) !important;
+        border-width: 1.5px !important;
       }
       [class*="MuiInputLabel-root"] {
         color: var(--color-muted-foreground) !important;
-        font-size: 0.8125rem !important;
+        font-size: 0.82rem !important;
       }
       [class*="MuiInputLabel-root.Mui-focused"] {
         color: var(--color-primary) !important;
@@ -78,8 +81,8 @@ export function FormEditor() {
       [class*="MuiPaper-root"] {
         background-color: var(--color-card) !important;
         color: var(--color-foreground) !important;
-        border-radius: 8px !important;
-        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1) !important;
+        border-radius: 18px !important;
+        box-shadow: 0 20px 44px rgba(34, 34, 46, 0.12) !important;
       }
       [class*="MuiCheckbox-root"] {
         color: var(--color-muted-foreground) !important;
@@ -103,7 +106,7 @@ export function FormEditor() {
         border-radius: 8px !important;
       }
       [class*="MuiFormControl-root"] {
-        margin-bottom: 0.5rem !important;
+        margin-bottom: 0.2rem !important;
       }
     `;
     document.head.appendChild(style);
@@ -113,9 +116,9 @@ export function FormEditor() {
   }, []);
 
   if (!configData) {
-    return (
-      <div className="flex items-center justify-center h-full p-8">
-        <div className="neu-card p-6 text-center text-muted-foreground text-sm">
+      return (
+      <div className="editor-empty-state">
+        <div className="editor-empty-card">
           No data to display in form mode
         </div>
       </div>
@@ -123,8 +126,8 @@ export function FormEditor() {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-6">
-      <div className="max-w-2xl mx-auto">
+    <div className="editor-scroll-shell">
+      <div className="editor-form-wrap">
         <JsonForms
           schema={defaultConfigSchema}
           uischema={defaultUiSchema}
