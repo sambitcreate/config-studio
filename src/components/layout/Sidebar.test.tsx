@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
+import { createDefaultPreferences } from "@/lib/preferences";
 import { useAppStore } from "@/lib/state/store";
 import type { DataSection } from "@/lib/schema";
 import { Sidebar } from "./Sidebar";
@@ -30,6 +31,7 @@ describe("Sidebar", () => {
       isSaving: false,
       lastSaveResult: null,
       activeSection: "mcp",
+      preferences: createDefaultPreferences(),
     });
   });
 

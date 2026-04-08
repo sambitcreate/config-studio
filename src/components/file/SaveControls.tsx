@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { getJsonFormatPreferences } from "@/lib/preferences";
 import { useAppStore } from "@/lib/state/store";
 import { confirmDiscardUnsavedChanges } from "@/lib/fileSession";
 import { parseContent, serializeJson, supportsStructuredEditing } from "@/lib/parse";
@@ -25,6 +26,7 @@ export function SaveControls() {
     setConfigData,
     setConfigRootKind,
     setValidationErrors,
+    preferences,
   } = useAppStore();
 
   async function handleSave() {
@@ -32,7 +34,11 @@ export function SaveControls() {
 
     const contentToSave = editorMode === "raw" || !configData
       ? rawContent
-      : serializeJson(configData, configRootKind ?? "object");
+      : serializeJson(
+          configData,
+          configRootKind ?? "object",
+          getJsonFormatPreferences(preferences, currentFile.format)
+        );
 
     if (currentFile.format === "json") {
       const validation = validateBasicJson(contentToSave);
@@ -64,6 +70,7 @@ export function SaveControls() {
       const result = await invoke<SaveResult>("save_file", {
         path: currentFile.path,
         content: contentToSave,
+        backupRetention: preferences.backupRetention,
       });
 
       setLastSaveResult(result);
@@ -129,7 +136,7 @@ export function SaveControls() {
   if (!currentFile) return null;
 
   return (
-    <div className="toolbar-cluster toolbar-cluster-end">
+    <div className="toolbar-cluster">
       <button
         onClick={handleRevert}
         disabled={!dirty}
