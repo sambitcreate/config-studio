@@ -9,6 +9,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::open_file,
             commands::save_file,
+            commands::save_file_as,
+            commands::get_file_status,
             commands::list_backups,
             commands::restore_backup,
             commands::validate_json,
