@@ -44,19 +44,21 @@ function App() {
       const parsed = parseContent(result.content, format);
       const store = useAppStore.getState();
 
-      if (parsed.error) {
-        store.setValidationErrors([
-          {
+        if (parsed.error) {
+          store.setValidationErrors([
+            {
             path: "/",
             message: parsed.error,
             severity: supportsStructuredEditing(format) ? "error" : "warning",
           },
-        ]);
-        store.setConfigData(null);
-      } else {
-        store.setConfigData(parsed.data);
-        store.setValidationErrors([]);
-      }
+          ]);
+          store.setConfigData(null);
+          store.setConfigRootKind(null);
+        } else {
+          store.setConfigData(parsed.data);
+          store.setConfigRootKind(parsed.rootKind);
+          store.setValidationErrors([]);
+        }
 
       store.setCurrentFile({
         path: filePath,
@@ -64,11 +66,15 @@ function App() {
         format,
         fileName: getFileName(filePath),
       });
-      store.setOriginalContent(result.content);
-      store.setRawContent(result.content);
-      store.setDirty(false);
-      store.setEditorMode(parsed.data && supportsVisualEditing(format) ? "form" : "raw");
-    } catch (e) {
+        store.setOriginalContent(result.content);
+        store.setRawContent(result.content);
+        store.setDirty(false);
+        store.setEditorMode(
+          parsed.data && parsed.rootKind === "object" && supportsVisualEditing(format)
+            ? "form"
+            : "raw"
+        );
+      } catch (e) {
       useAppStore.getState().setValidationErrors([
         { path: "/", message: String(e), severity: "error" },
       ]);

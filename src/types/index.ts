@@ -1,5 +1,7 @@
 export type FileFormat = "json" | "jsonc" | "yaml" | "toml";
 
+export type ConfigRootKind = "object" | "array";
+
 export interface OpenFile {
   path: string;
   content: string;
@@ -30,7 +32,9 @@ export type EditorMode = "form" | "structure" | "raw" | "diff";
 export interface AppState {
   currentFile: OpenFile | null;
   originalContent: string;
+  rawContent: string;
   configData: Record<string, unknown> | null;
+  configRootKind: ConfigRootKind | null;
   dirty: boolean;
   editorMode: EditorMode;
   validationErrors: ValidationError[];

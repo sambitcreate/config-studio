@@ -34,3 +34,9 @@ npm run tauri -- dev
 - `src/lib/state/store.ts` for shared UI state
 - `src/lib/parse/index.ts` for file-format detection and parsing behavior
 - `src-tauri/src/commands.rs` for file IO, backups, and validation commands
+
+## Review And Verification
+
+- Prefer code reviews that focus on data-loss risks, state sync bugs, and save-path regressions first.
+- Be careful with JSON array-root files and formats that do not support structured editing yet.
+- Run `npm test` and `npm run build` before shipping changes that touch editor flows or persistence.

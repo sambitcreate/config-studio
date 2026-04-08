@@ -18,6 +18,7 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
     originalContent: "",
     rawContent: "",
     configData: null,
+    configRootKind: null,
     dirty: false,
     editorMode: "form",
     validationErrors: [],
@@ -46,6 +47,7 @@ describe("SaveControls", () => {
       originalContent: '{"name":"before"}',
       rawContent: '{"name":',
       configData: { name: "before" },
+      configRootKind: "object",
       dirty: true,
       editorMode: "raw",
     });
@@ -76,6 +78,7 @@ describe("SaveControls", () => {
       originalContent: '{"name":"before"}',
       rawContent: '{"name":"before"}',
       configData: { name: "after" },
+      configRootKind: "object",
       dirty: true,
       editorMode: "form",
     });
@@ -104,6 +107,46 @@ describe("SaveControls", () => {
     });
   });
 
+  it("preserves array-root JSON when structured content is saved", async () => {
+    mockInvoke.mockResolvedValue({
+      success: true,
+      backup_path: "/tmp/config.json_20260101_000000.bak",
+      error: null,
+    });
+
+    resetStore({
+      currentFile: {
+        path: "/tmp/config.json",
+        content: "[1]",
+        format: "json",
+        fileName: "config.json",
+      },
+      originalContent: "[1]",
+      rawContent: "[1]",
+      configData: { _root: [1, 2, 3] },
+      configRootKind: "array",
+      dirty: true,
+      editorMode: "form",
+    });
+
+    render(<SaveControls />);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith("save_file", {
+        path: "/tmp/config.json",
+        content: ["[", "  1,", "  2,", "  3", "]"].join("\n"),
+      });
+    });
+
+    expect(useAppStore.getState()).toMatchObject({
+      originalContent: ["[", "  1,", "  2,", "  3", "]"].join("\n"),
+      rawContent: ["[", "  1,", "  2,", "  3", "]"].join("\n"),
+      configRootKind: "array",
+      dirty: false,
+    });
+  });
+
   it("reverts to the original raw content and preserves warning severity for yaml", async () => {
     resetStore({
       currentFile: {
@@ -115,6 +158,7 @@ describe("SaveControls", () => {
       originalContent: "name: before",
       rawContent: "name: [",
       configData: null,
+      configRootKind: null,
       dirty: true,
       editorMode: "raw",
       validationErrors: [{ path: "/", message: "broken", severity: "warning" }],

@@ -11,6 +11,7 @@ export function FileOpener() {
     setOriginalContent,
     setRawContent,
     setConfigData,
+    setConfigRootKind,
     setDirty,
     setEditorMode,
     setValidationErrors,
@@ -47,8 +48,10 @@ export function FileOpener() {
           },
         ]);
         setConfigData(null);
+        setConfigRootKind(null);
       } else {
         setConfigData(parsed.data);
+        setConfigRootKind(parsed.rootKind);
         setValidationErrors([]);
       }
 
@@ -61,7 +64,11 @@ export function FileOpener() {
       setOriginalContent(result.content);
       setRawContent(result.content);
       setDirty(false);
-      setEditorMode(parsed.data && supportsVisualEditing(format) ? "form" : "raw");
+      setEditorMode(
+        parsed.data && parsed.rootKind === "object" && supportsVisualEditing(format)
+          ? "form"
+          : "raw"
+      );
     } catch (e) {
       setValidationErrors([
         { path: "/", message: String(e), severity: "error" },

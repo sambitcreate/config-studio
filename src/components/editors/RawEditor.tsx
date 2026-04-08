@@ -9,6 +9,7 @@ export function RawEditor() {
     rawContent,
     setRawContent,
     setConfigData,
+    setConfigRootKind,
     setDirty,
     originalContent,
     currentFile,
@@ -31,6 +32,7 @@ export function RawEditor() {
       const parsed = parseContent(value, currentFile.format);
       if (parsed.error) {
         setConfigData(null);
+        setConfigRootKind(null);
         setValidationErrors([
           {
             path: "/",
@@ -42,9 +44,18 @@ export function RawEditor() {
       }
 
       setConfigData(parsed.data);
+      setConfigRootKind(parsed.rootKind);
       setValidationErrors([]);
     },
-    [currentFile, originalContent, setConfigData, setDirty, setRawContent, setValidationErrors]
+    [
+      currentFile,
+      originalContent,
+      setConfigData,
+      setConfigRootKind,
+      setDirty,
+      setRawContent,
+      setValidationErrors,
+    ]
   );
 
   if (!currentFile) {

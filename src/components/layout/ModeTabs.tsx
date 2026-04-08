@@ -17,16 +17,16 @@ const tabs: { mode: EditorMode; label: string; icon: React.ReactNode }[] = [
 ];
 
 export function ModeTabs() {
-  const { editorMode, setEditorMode, currentFile, configData } = useAppStore();
+  const { editorMode, setEditorMode, currentFile, configData, configRootKind } = useAppStore();
 
   if (!currentFile) return null;
 
   return (
     <div className="mode-tabs-shell">
       {tabs.map(({ mode, label, icon }) => {
-        const disabled =
-          (mode === "form" || mode === "structure") &&
-          (!configData || !supportsVisualEditing(currentFile.format));
+        const disabled = mode === "form" || mode === "structure"
+          ? !configData || configRootKind !== "object" || !supportsVisualEditing(currentFile.format)
+          : false;
 
         return (
           <button

@@ -1,4 +1,10 @@
-import type { FileFormat } from "@/types";
+import type { ConfigRootKind, FileFormat } from "@/types";
+
+interface ParseResult {
+  data: Record<string, unknown> | null;
+  error: string | null;
+  rootKind: ConfigRootKind | null;
+}
 
 export function supportsStructuredEditing(format: FileFormat): boolean {
   return format === "json" || format === "jsonc";
@@ -17,26 +23,35 @@ export function detectFormat(filePath: string): FileFormat {
   return "json";
 }
 
-export function parseJson(content: string): {
-  data: Record<string, unknown> | null;
-  error: string | null;
-} {
+export function parseJson(content: string): ParseResult {
   try {
     const parsed = JSON.parse(content);
     if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-      return { data: parsed as Record<string, unknown>, error: null };
+      return {
+        data: parsed as Record<string, unknown>,
+        error: null,
+        rootKind: "object",
+      };
     }
     if (Array.isArray(parsed)) {
-      return { data: { _root: parsed } as Record<string, unknown>, error: null };
+      return {
+        data: { _root: parsed } as Record<string, unknown>,
+        error: null,
+        rootKind: "array",
+      };
     }
-    return { data: null, error: "Root value is not an object or array" };
+    return { data: null, error: "Root value is not an object or array", rootKind: null };
   } catch (e) {
-    return { data: null, error: (e as Error).message };
+    return { data: null, error: (e as Error).message, rootKind: null };
   }
 }
 
-export function serializeJson(data: Record<string, unknown>): string {
-  return JSON.stringify(data, null, 2);
+export function serializeJson(
+  data: Record<string, unknown>,
+  rootKind: ConfigRootKind = "object"
+): string {
+  const output = rootKind === "array" ? data._root : data;
+  return JSON.stringify(output, null, 2);
 }
 
 export function stripJsoncComments(content: string): string {
@@ -115,10 +130,7 @@ export function stripJsoncComments(content: string): string {
   return result.trim();
 }
 
-export function parseContent(content: string, format: FileFormat): {
-  data: Record<string, unknown> | null;
-  error: string | null;
-} {
+export function parseContent(content: string, format: FileFormat): ParseResult {
   switch (format) {
     case "json":
       return parseJson(content);
@@ -131,6 +143,7 @@ export function parseContent(content: string, format: FileFormat): {
       return {
         data: null,
         error: `${format.toUpperCase()} structured editing is not available yet. Raw mode is still available.`,
+        rootKind: null,
       };
     default:
       return parseJson(content);
@@ -138,5 +151,5 @@ export function parseContent(content: string, format: FileFormat): {
 }
 
 export function getFileName(filePath: string): string {
-  return filePath.split("/").pop() || filePath;
+  return filePath.split(/[/\\]/).pop() || filePath;
 }

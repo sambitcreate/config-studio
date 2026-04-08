@@ -12,6 +12,7 @@ export function SaveControls() {
     configData,
     originalContent,
     rawContent,
+    configRootKind,
     dirty,
     isSaving,
     editorMode,
@@ -21,6 +22,7 @@ export function SaveControls() {
     setOriginalContent,
     setRawContent,
     setConfigData,
+    setConfigRootKind,
     setValidationErrors,
   } = useAppStore();
 
@@ -29,7 +31,7 @@ export function SaveControls() {
 
     const contentToSave = editorMode === "raw" || !configData
       ? rawContent
-      : serializeJson(configData);
+      : serializeJson(configData, configRootKind ?? "object");
 
     if (currentFile.format === "json") {
       const validation = validateBasicJson(contentToSave);
@@ -67,11 +69,12 @@ export function SaveControls() {
       if (result.success) {
         const parsed = supportsStructuredEditing(currentFile.format)
           ? parseContent(contentToSave, currentFile.format)
-          : { data: null, error: null };
+          : { data: null, error: null, rootKind: null };
 
         setOriginalContent(contentToSave);
         setRawContent(contentToSave);
         setConfigData(parsed.data);
+        setConfigRootKind(parsed.rootKind);
         setDirty(false);
         if (parsed.error) {
           setValidationErrors([
@@ -99,6 +102,7 @@ export function SaveControls() {
 
     setRawContent(originalContent);
     setConfigData(parsed.data);
+    setConfigRootKind(parsed.rootKind);
     if (parsed.error) {
       setValidationErrors([
         {

@@ -31,11 +31,13 @@ describe("parse helpers", () => {
     expect(parseJson('{"name":"OpenCode"}')).toEqual({
       data: { name: "OpenCode" },
       error: null,
+      rootKind: "object",
     });
 
     expect(parseJson("[1,2,3]")).toEqual({
       data: { _root: [1, 2, 3] },
       error: null,
+      rootKind: "array",
     });
   });
 
@@ -43,10 +45,12 @@ describe("parse helpers", () => {
     expect(parseJson("true")).toEqual({
       data: null,
       error: "Root value is not an object or array",
+      rootKind: null,
     });
 
     expect(parseJson('{"name":')).toMatchObject({
       data: null,
+      rootKind: null,
     });
   });
 
@@ -86,6 +90,7 @@ describe("parse helpers", () => {
     ).toEqual({
       data: { url: "https://example.com" },
       error: null,
+      rootKind: "object",
     });
   });
 
@@ -93,11 +98,13 @@ describe("parse helpers", () => {
     expect(parseContent("name: value", "yaml")).toEqual({
       data: null,
       error: "YAML structured editing is not available yet. Raw mode is still available.",
+      rootKind: null,
     });
 
     expect(parseContent("key = 'value'", "toml")).toEqual({
       data: null,
       error: "TOML structured editing is not available yet. Raw mode is still available.",
+      rootKind: null,
     });
   });
 
@@ -107,10 +114,19 @@ describe("parse helpers", () => {
       '  "name": "OpenCode"',
       "}",
     ].join("\n"));
+
+    expect(serializeJson({ _root: [1, 2, 3] }, "array")).toBe([
+      "[",
+      "  1,",
+      "  2,",
+      "  3",
+      "]",
+    ].join("\n"));
   });
 
   it("extracts file names from paths", () => {
     expect(getFileName("/tmp/config.json")).toBe("config.json");
+    expect(getFileName("C:\\temp\\config.json")).toBe("config.json");
     expect(getFileName("config.json")).toBe("config.json");
   });
 });

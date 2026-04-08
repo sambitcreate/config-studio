@@ -1,11 +1,12 @@
 import { create } from "zustand";
-import type { EditorMode, OpenFile, SaveResult, ValidationError } from "@/types";
+import type { ConfigRootKind, EditorMode, OpenFile, SaveResult, ValidationError } from "@/types";
 
 interface AppStore {
   currentFile: OpenFile | null;
   originalContent: string;
   rawContent: string;
   configData: Record<string, unknown> | null;
+  configRootKind: ConfigRootKind | null;
   dirty: boolean;
   editorMode: EditorMode;
   validationErrors: ValidationError[];
@@ -18,6 +19,7 @@ interface AppStore {
   setOriginalContent: (content: string) => void;
   setRawContent: (content: string) => void;
   setConfigData: (data: Record<string, unknown> | null) => void;
+  setConfigRootKind: (kind: ConfigRootKind | null) => void;
   setDirty: (dirty: boolean) => void;
   setEditorMode: (mode: EditorMode) => void;
   setValidationErrors: (errors: ValidationError[]) => void;
@@ -33,6 +35,7 @@ export const useAppStore = create<AppStore>((set) => ({
   originalContent: "",
   rawContent: "",
   configData: null,
+  configRootKind: null,
   dirty: false,
   editorMode: "form",
   validationErrors: [],
@@ -55,6 +58,8 @@ export const useAppStore = create<AppStore>((set) => ({
   setRawContent: (content) => set({ rawContent: content }),
 
   setConfigData: (data) => set({ configData: data }),
+
+  setConfigRootKind: (configRootKind) => set({ configRootKind }),
 
   setDirty: (dirty) => set({ dirty }),
 
@@ -80,6 +85,7 @@ export const useAppStore = create<AppStore>((set) => ({
       originalContent: "",
       rawContent: "",
       configData: null,
+      configRootKind: null,
       dirty: false,
       validationErrors: [],
       lastSaveResult: null,

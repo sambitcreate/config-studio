@@ -5,6 +5,11 @@ export function StructureEditor() {
   const { configData, setConfigData, setRawContent, setDirty, originalContent, currentFile } = useAppStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<unknown>(null);
+  const originalContentRef = useRef(originalContent);
+
+  useEffect(() => {
+    originalContentRef.current = originalContent;
+  }, [originalContent]);
 
   const handleChange = useCallback(
     (updatedContent: { json?: unknown; text?: string }) => {
@@ -13,10 +18,10 @@ export function StructureEditor() {
         setConfigData(data);
         const serialized = JSON.stringify(data, null, 2);
         setRawContent(serialized);
-        setDirty(serialized !== originalContent);
+        setDirty(serialized !== originalContentRef.current);
       }
     },
-    [setConfigData, setDirty, setRawContent, originalContent]
+    [setConfigData, setDirty, setRawContent]
   );
 
   useEffect(() => {
