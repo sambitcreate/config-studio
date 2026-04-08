@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { confirm, open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { detectFormat, getFileName, parseContent, supportsStructuredEditing, supportsVisualEditing } from "@/lib/parse";
 import { useAppStore } from "@/lib/state/store";
+import { createValidationError } from "@/lib/validation/utils";
 import type { OpenFile } from "@/types";
 
 const configFileDialogOptions = {
@@ -36,11 +37,12 @@ export async function loadFileIntoStore(filePath: string) {
 
     if (parsed.error) {
       store.setValidationErrors([
-        {
-          path: "/",
-          message: parsed.error,
-          severity: supportsStructuredEditing(format) ? "error" : "warning",
-        },
+        createValidationError(
+          "/",
+          parsed.error,
+          supportsStructuredEditing(format) ? "error" : "warning",
+          result.content
+        ),
       ]);
       store.setConfigData(null);
       store.setConfigRootKind(null);
@@ -69,7 +71,7 @@ export async function loadFileIntoStore(filePath: string) {
     return true;
   } catch (error) {
     store.setValidationErrors([
-      { path: "/", message: String(error), severity: "error" },
+      createValidationError("/", String(error), "error"),
     ]);
     return false;
   }

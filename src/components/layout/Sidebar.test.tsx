@@ -26,6 +26,8 @@ describe("Sidebar", () => {
       dirty: false,
       editorMode: "form",
       validationErrors: [],
+      validationPanelOpen: false,
+      validationFocusRequest: null,
       recentFiles: [],
       isSaving: false,
       lastSaveResult: null,

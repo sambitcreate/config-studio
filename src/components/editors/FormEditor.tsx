@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { useAppStore } from "@/lib/state/store";
 import { buildSchemaFromData, buildUiSchemaFromData, getDataSections } from "@/lib/schema";
 import { useSystemTheme } from "@/lib/theme/useSystemTheme";
+import { mapJsonFormsErrors, toJsonFormsPath } from "@/lib/validation/utils";
 import { deletableControlRenderer } from "./DeletableControl";
 import { useEffect, useCallback, useMemo } from "react";
 
@@ -13,7 +14,16 @@ export function FormEditor() {
     () => createTheme({ palette: { mode: themeMode } }),
     [themeMode]
   );
-  const { configData, activeSection, setConfigData, setRawContent, setDirty, originalContent } = useAppStore();
+  const {
+    configData,
+    activeSection,
+    validationFocusRequest,
+    setConfigData,
+    setRawContent,
+    setDirty,
+    setValidationErrors,
+    originalContent,
+  } = useAppStore();
   const renderers = useMemo(
     () => [...materialRenderers, deletableControlRenderer],
     []
@@ -26,15 +36,23 @@ export function FormEditor() {
   );
 
   const handleChange = useCallback(
-    ({ data }: { data: Record<string, unknown> }) => {
+    ({
+      data,
+      errors,
+    }: {
+      data: Record<string, unknown>;
+      errors?: Array<{ instancePath?: string; message?: string }>;
+    }) => {
       if (data !== undefined) {
         setConfigData(data);
         const serialized = JSON.stringify(data, null, 2);
         setRawContent(serialized);
         setDirty(serialized !== originalContent);
       }
+
+      setValidationErrors(mapJsonFormsErrors(errors));
     },
-    [setConfigData, setDirty, setRawContent, originalContent]
+    [originalContent, setConfigData, setDirty, setRawContent, setValidationErrors]
   );
 
   useEffect(() => {
@@ -97,12 +115,19 @@ export function FormEditor() {
         border-color: var(--color-ring) !important;
         border-width: 1.5px !important;
       }
+      [class*="MuiOutlinedInput-root"][class*="Mui-error"] [class*="MuiOutlinedInput-notchedOutline"] {
+        border-color: var(--color-danger) !important;
+        border-width: 1.5px !important;
+      }
       [class*="MuiInputLabel-root"] {
         color: var(--color-muted-foreground) !important;
         font-size: 0.82rem !important;
       }
       [class*="MuiInputLabel-root"][class*="Mui-focused"] {
         color: var(--color-primary) !important;
+      }
+      [class*="MuiInputLabel-root"][class*="Mui-error"] {
+        color: var(--color-danger) !important;
       }
       [class*="MuiSelect-select"] {
         color: var(--color-foreground) !important;
@@ -142,6 +167,13 @@ export function FormEditor() {
       [class*="MuiFormControl-root"] {
         margin-bottom: 0.2rem !important;
       }
+      [class*="MuiFormHelperText-root"] {
+        margin-left: 4px !important;
+        color: var(--color-muted-foreground) !important;
+      }
+      [class*="MuiFormHelperText-root"][class*="Mui-error"] {
+        color: var(--color-danger) !important;
+      }
       .deletable-field-row {
         display: flex;
         align-items: flex-start;
@@ -173,6 +205,43 @@ export function FormEditor() {
     };
   }, []);
 
+  useEffect(() => {
+    const focusRequest = validationFocusRequest;
+    const path = focusRequest ? toJsonFormsPath(focusRequest.error.path) : null;
+    if (!path) {
+      return;
+    }
+
+    let cancelled = false;
+    const escapedPath = window.CSS?.escape ? window.CSS.escape(path) : path.replace(/"/g, '\\"');
+    const frameId = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        if (cancelled) {
+          return;
+        }
+
+        const selector = [
+          `[data-form-path="${escapedPath}"] input`,
+          `[data-form-path="${escapedPath}"] textarea`,
+          `[data-form-path="${escapedPath}"] [role="combobox"]`,
+          `[data-form-path="${escapedPath}"] button`,
+        ].join(", ");
+        const target = document.querySelector<HTMLElement>(selector);
+        if (!target) {
+          return;
+        }
+
+        target.scrollIntoView({ block: "center", behavior: "smooth" });
+        target.focus();
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [activeSection, validationFocusRequest]);
+
   if (!configData || !schema || !uischema) {
     return (
       <div className="editor-empty-state">
@@ -194,6 +263,7 @@ export function FormEditor() {
             renderers={renderers}
             cells={materialCells}
             onChange={handleChange}
+            validationMode="ValidateAndShow"
           />
           {sections.length === 0 && (
             <div className="editor-empty-card">No top-level fields available</div>

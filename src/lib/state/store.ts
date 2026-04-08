@@ -1,5 +1,12 @@
 import { create } from "zustand";
-import type { ConfigRootKind, EditorMode, OpenFile, SaveResult, ValidationError } from "@/types";
+import type {
+  ConfigRootKind,
+  EditorMode,
+  OpenFile,
+  SaveResult,
+  ValidationError,
+  ValidationFocusRequest,
+} from "@/types";
 
 interface AppStore {
   currentFile: OpenFile | null;
@@ -10,6 +17,8 @@ interface AppStore {
   dirty: boolean;
   editorMode: EditorMode;
   validationErrors: ValidationError[];
+  validationPanelOpen: boolean;
+  validationFocusRequest: ValidationFocusRequest | null;
   recentFiles: string[];
   isSaving: boolean;
   lastSaveResult: SaveResult | null;
@@ -23,6 +32,8 @@ interface AppStore {
   setDirty: (dirty: boolean) => void;
   setEditorMode: (mode: EditorMode) => void;
   setValidationErrors: (errors: ValidationError[]) => void;
+  setValidationPanelOpen: (open: boolean) => void;
+  requestValidationFocus: (error: ValidationError) => void;
   addRecentFile: (path: string) => void;
   setIsSaving: (saving: boolean) => void;
   setLastSaveResult: (result: SaveResult | null) => void;
@@ -39,6 +50,8 @@ export const useAppStore = create<AppStore>((set) => ({
   dirty: false,
   editorMode: "form",
   validationErrors: [],
+  validationPanelOpen: false,
+  validationFocusRequest: null,
   recentFiles: [],
   isSaving: false,
   lastSaveResult: null,
@@ -65,7 +78,21 @@ export const useAppStore = create<AppStore>((set) => ({
 
   setEditorMode: (mode) => set({ editorMode: mode }),
 
-  setValidationErrors: (errors) => set({ validationErrors: errors }),
+  setValidationErrors: (errors) =>
+    set((state) => ({
+      validationErrors: errors,
+      validationPanelOpen: errors.length === 0 ? false : state.validationPanelOpen,
+    })),
+
+  setValidationPanelOpen: (validationPanelOpen) => set({ validationPanelOpen }),
+
+  requestValidationFocus: (error) =>
+    set((state) => ({
+      validationFocusRequest: {
+        error,
+        sequence: (state.validationFocusRequest?.sequence ?? 0) + 1,
+      },
+    })),
 
   addRecentFile: (path) =>
     set((state) => {
@@ -88,6 +115,8 @@ export const useAppStore = create<AppStore>((set) => ({
       configRootKind: null,
       dirty: false,
       validationErrors: [],
+      validationPanelOpen: false,
+      validationFocusRequest: null,
       lastSaveResult: null,
       activeSection: "",
     }),

@@ -1,7 +1,8 @@
-import { lazy, Suspense, useCallback } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef } from "react";
 import { useAppStore } from "@/lib/state/store";
 import { parseContent, supportsStructuredEditing } from "@/lib/parse";
 import { useSystemTheme } from "@/lib/theme/useSystemTheme";
+import { createValidationError, getValidationMarkerRange } from "@/lib/validation/utils";
 
 const MonacoEditor = lazy(() => import("@monaco-editor/react").then((m) => ({ default: m.default })));
 
@@ -15,8 +16,34 @@ export function RawEditor() {
     setDirty,
     originalContent,
     currentFile,
+    editorMode,
+    validationErrors,
+    validationFocusRequest,
     setValidationErrors,
   } = useAppStore();
+  const editorRef = useRef<{
+    focus: () => void;
+    getModel: () => unknown;
+    setPosition: (position: { lineNumber: number; column: number }) => void;
+    revealPositionInCenter: (position: { lineNumber: number; column: number }) => void;
+  } | null>(null);
+  const monacoRef = useRef<{
+    MarkerSeverity: { Error: number; Warning: number };
+    editor: {
+      setModelMarkers: (
+        model: unknown,
+        owner: string,
+        markers: Array<{
+          startLineNumber: number;
+          startColumn: number;
+          endLineNumber: number;
+          endColumn: number;
+          message: string;
+          severity: number;
+        }>
+      ) => void;
+    };
+  } | null>(null);
 
   const editorLanguage = currentFile?.format === "jsonc"
     ? "json"
@@ -36,11 +63,12 @@ export function RawEditor() {
         setConfigData(null);
         setConfigRootKind(null);
         setValidationErrors([
-          {
-            path: "/",
-            message: parsed.error,
-            severity: supportsStructuredEditing(currentFile.format) ? "error" : "warning",
-          },
+          createValidationError(
+            "/",
+            parsed.error,
+            supportsStructuredEditing(currentFile.format) ? "error" : "warning",
+            value
+          ),
         ]);
         return;
       }
@@ -58,6 +86,83 @@ export function RawEditor() {
       setRawContent,
       setValidationErrors,
     ]
+  );
+
+  const applyMarkers = useCallback(() => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    const model = editor?.getModel();
+
+    if (!editor || !monaco || !model) {
+      return;
+    }
+
+    const markers = validationErrors.map((error) => ({
+      ...getValidationMarkerRange(rawContent, error),
+      message: error.message,
+      severity:
+        error.severity === "error" ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
+    }));
+
+    monaco.editor.setModelMarkers(model, "config-studio-validation", markers);
+  }, [rawContent, validationErrors]);
+
+  useEffect(() => {
+    applyMarkers();
+  }, [applyMarkers]);
+
+  useEffect(() => {
+    if (!validationFocusRequest || editorMode !== "raw") {
+      return;
+    }
+
+    const editor = editorRef.current;
+    if (!editor) {
+      return;
+    }
+
+    const range = getValidationMarkerRange(rawContent, validationFocusRequest.error);
+    const position = {
+      lineNumber: range.startLineNumber,
+      column: range.startColumn,
+    };
+
+    editor.focus();
+    editor.setPosition(position);
+    editor.revealPositionInCenter(position);
+  }, [editorMode, rawContent, validationFocusRequest]);
+
+  const handleMount = useCallback(
+    (
+      editor: {
+        focus: () => void;
+        getModel: () => unknown;
+        setPosition: (position: { lineNumber: number; column: number }) => void;
+        revealPositionInCenter: (position: { lineNumber: number; column: number }) => void;
+      },
+      monaco: {
+        MarkerSeverity: { Error: number; Warning: number };
+        editor: {
+          setModelMarkers: (
+            model: unknown,
+            owner: string,
+            markers: Array<{
+              startLineNumber: number;
+              startColumn: number;
+              endLineNumber: number;
+              endColumn: number;
+              message: string;
+              severity: number;
+            }>
+          ) => void;
+        };
+      }
+    ) => {
+      editorRef.current = editor;
+      monacoRef.current = monaco;
+      applyMarkers();
+    },
+    [applyMarkers]
   );
 
   if (!currentFile) {
@@ -87,6 +192,7 @@ export function RawEditor() {
             defaultLanguage={editorLanguage}
             value={rawContent}
             onChange={handleChange}
+            onMount={handleMount}
             theme={theme === "dark" ? "vs-dark" : "vs"}
             options={{
               minimap: { enabled: false },

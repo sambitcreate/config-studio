@@ -34,6 +34,8 @@ function resetStore(overrides: Partial<ReturnType<typeof useAppStore.getState>> 
     dirty: true,
     editorMode: "form",
     validationErrors: [],
+    validationPanelOpen: false,
+    validationFocusRequest: null,
     recentFiles: [],
     isSaving: false,
     lastSaveResult: null,
