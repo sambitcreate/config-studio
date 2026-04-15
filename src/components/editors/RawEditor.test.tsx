@@ -83,4 +83,32 @@ describe("RawEditor", () => {
       )
     ).toBeInTheDocument();
   });
+
+  it("shows TOML format notice", () => {
+    resetStore({
+      currentFile: { path: "/tmp/config.toml", content: "[section]", format: "toml", fileName: "config.toml" },
+      originalContent: "[section]",
+      rawContent: "[section]",
+      configData: null,
+      configRootKind: null,
+    });
+    render(<RawEditor />);
+    expect(screen.getByText("TOML files stay in Raw mode for now")).toBeInTheDocument();
+  });
+
+  it("shows no format notice for standard JSON object root", () => {
+    resetStore({
+      configData: { name: "test" },
+      configRootKind: "object",
+    });
+    render(<RawEditor />);
+    expect(screen.queryByTestId("editor-context-card")).not.toBeInTheDocument();
+    expect(screen.queryByText("Raw mode")).not.toBeInTheDocument();
+  });
+
+  it("shows empty state when no file is open", () => {
+    resetStore({ currentFile: null });
+    render(<RawEditor />);
+    expect(screen.getByText("Open a file to edit")).toBeInTheDocument();
+  });
 });
