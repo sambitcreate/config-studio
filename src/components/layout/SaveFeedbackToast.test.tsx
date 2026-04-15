@@ -82,4 +82,47 @@ describe("SaveFeedbackToast", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Couldn’t save config.json");
     expect(screen.getByText("Failed to replace original file: permission denied")).toBeInTheDocument();
   });
+
+  it("renders nothing when there is no save result", () => {
+    const { container } = render(<SaveFeedbackToast />);
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("dismisses the notice when the dismiss button is clicked", async () => {
+    render(<SaveFeedbackToast />);
+
+    await act(async () => {
+      useAppStore.getState().setLastSaveResult({
+        success: true,
+        backup_path: null,
+        error: null,
+      });
+    });
+
+    expect(screen.getByRole("status")).toBeInTheDocument();
+
+    await act(async () => {
+      screen.getByRole("button", { name: "Dismiss save feedback" }).click();
+    });
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("keeps error toasts visible after 7 seconds", async () => {
+    render(<SaveFeedbackToast />);
+
+    await act(async () => {
+      useAppStore.getState().setLastSaveResult({
+        success: false,
+        backup_path: null,
+        error: "disk full",
+      });
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(7000);
+    });
+
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+  });
 });
