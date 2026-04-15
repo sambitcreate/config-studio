@@ -52,4 +52,23 @@ describe("SettingsDrawer", () => {
       },
     });
   });
+
+  it("renders nothing when open is false", () => {
+    const { container } = render(<SettingsDrawer open={false} onClose={vi.fn()} />);
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("calls onClose when the close button is clicked", async () => {
+    const onClose = vi.fn();
+    render(<SettingsDrawer open onClose={onClose} />);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Close settings" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onClose when Escape is pressed", () => {
+    const onClose = vi.fn();
+    render(<SettingsDrawer open onClose={onClose} />);
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });
