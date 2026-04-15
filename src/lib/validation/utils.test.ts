@@ -50,4 +50,18 @@ describe("validation utils", () => {
     expect(schemaRange.startLineNumber).toBe(3);
     expect(schemaRange.startColumn).toBeGreaterThan(1);
   });
+
+  it("returns an empty array when mapping undefined or empty errors", () => {
+    expect(mapJsonFormsErrors(undefined)).toEqual([]);
+    expect(mapJsonFormsErrors([])).toEqual([]);
+  });
+
+  it("filters _root segments from formatted paths", () => {
+    expect(formatValidationPath("/_root/0/name")).toBe("[0].name");
+  });
+
+  it("returns null top-level section for numeric-only paths", () => {
+    expect(getTopLevelValidationSection("/0")).toBeNull();
+    expect(getTopLevelValidationSection("/")).toBeNull();
+  });
 });

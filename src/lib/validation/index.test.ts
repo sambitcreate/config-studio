@@ -33,4 +33,35 @@ describe("validation helpers", () => {
       errors: [{ path: "/" }],
     });
   });
+
+  it("rejects an empty string as invalid JSON", () => {
+    const result = validateBasicJson("");
+    expect(result.valid).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it("validates deeply nested valid data against a schema", () => {
+    const schema = {
+      type: "object",
+      properties: {
+        level1: {
+          type: "object",
+          properties: {
+            level2: { type: "string" },
+          },
+        },
+      },
+    };
+
+    expect(
+      validateAgainstSchema({ level1: { level2: "deep" } }, schema)
+    ).toEqual({ valid: true, errors: [] });
+  });
+
+  it("accepts valid JSON arrays", () => {
+    expect(validateBasicJson("[1,2,3]")).toEqual({
+      valid: true,
+      errors: [],
+    });
+  });
 });
