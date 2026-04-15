@@ -144,4 +144,31 @@ describe("App shortcuts", () => {
     expect(mockRevertCurrentFile).toHaveBeenCalledTimes(1);
     expect(find).toHaveBeenCalledTimes(1);
   });
+
+  it("closes settings overlay on Escape when it is open", () => {
+    render(<App />);
+
+    fireEvent.keyDown(window, { key: ",", metaKey: true });
+    expect(screen.getByRole("dialog", { name: "Settings" })).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Settings" })).not.toBeInTheDocument();
+  });
+
+  it("triggers openFileIntoStore on Cmd+O", () => {
+    render(<App />);
+
+    fireEvent.keyDown(window, { key: "o", metaKey: true });
+
+    expect(mockOpenFileIntoStore).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders WelcomeScreen when no file is open", () => {
+    resetStore({ currentFile: null, configData: null, configRootKind: null });
+
+    render(<App />);
+
+    expect(screen.getByText("Open a config file to start editing")).toBeInTheDocument();
+    expect(screen.queryByText("Form Editor")).not.toBeInTheDocument();
+  });
 });
