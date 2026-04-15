@@ -73,4 +73,24 @@ describe("preferences helpers", () => {
       })
     ).toBe("raw");
   });
+
+  it("returns defaults when given an empty object", () => {
+    expect(normalizePreferences({})).toEqual(createDefaultPreferences());
+  });
+
+  it("ignores invalid theme preference values", () => {
+    const result = normalizePreferences({ themePreference: "neon" as any });
+    expect(result.themePreference).toBe("system");
+  });
+
+  it("resolves auto mode to form for object-root JSON with data", () => {
+    expect(
+      resolveEditorModeOnOpen({
+        preferredMode: "auto",
+        format: "json",
+        rootKind: "object",
+        hasData: true,
+      })
+    ).toBe("form");
+  });
 });
