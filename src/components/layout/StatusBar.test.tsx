@@ -63,4 +63,30 @@ describe("StatusBar", () => {
     expect(useAppStore.getState().activeSection).toBe("provider");
     expect(useAppStore.getState().validationFocusRequest?.error.path).toBe("/provider/name");
   });
+
+  it("renders the format pill showing the uppercase format", () => {
+    render(<StatusBar />);
+    expect(screen.getByText("JSON")).toBeInTheDocument();
+  });
+
+  it("renders empty state when no file is open", () => {
+    resetStore({ currentFile: null });
+    render(<StatusBar />);
+    expect(screen.getByText(/No file open/)).toBeInTheDocument();
+    expect(screen.getByText("Cmd+O")).toBeInTheDocument();
+  });
+
+  it("collapses validation panel when toggle clicked twice", async () => {
+    resetStore({
+      validationErrors: [
+        { path: "/name", message: "required", severity: "error" },
+      ],
+    });
+    render(<StatusBar />);
+    const toggle = screen.getByRole("button", { name: /1 error/i });
+    await userEvent.setup().click(toggle);
+    expect(screen.getByRole("region", { name: "Validation issues" })).toBeInTheDocument();
+    await userEvent.setup().click(toggle);
+    expect(screen.queryByRole("region", { name: "Validation issues" })).not.toBeInTheDocument();
+  });
 });
