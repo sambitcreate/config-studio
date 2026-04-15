@@ -268,4 +268,42 @@ describe("SaveControls", () => {
       dirty: true,
     });
   });
+
+  it("renders nothing when there is no current file", () => {
+    resetStore({ currentFile: null });
+    const { container } = render(<SaveControls />);
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("disables both save and revert buttons when not dirty", () => {
+    resetStore({
+      currentFile: {
+        path: "/tmp/config.json",
+        content: "{}",
+        format: "json",
+        fileName: "config.json",
+      },
+      dirty: false,
+    });
+
+    render(<SaveControls />);
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Revert" })).toBeDisabled();
+  });
+
+  it("shows Saving text while a save is in progress", () => {
+    resetStore({
+      currentFile: {
+        path: "/tmp/config.json",
+        content: "{}",
+        format: "json",
+        fileName: "config.json",
+      },
+      dirty: true,
+      isSaving: true,
+    });
+
+    render(<SaveControls />);
+    expect(screen.getByRole("button", { name: "Saving..." })).toBeDisabled();
+  });
 });
