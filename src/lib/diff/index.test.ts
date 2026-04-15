@@ -11,4 +11,16 @@ describe("computeDiff", () => {
       "+ d",
     ]);
   });
+
+  it("returns a single unchanged entry for two empty strings", () => {
+    expect(computeDiff("", "")).toEqual(["  "]);
+  });
+
+  it("marks all lines as unchanged when strings are identical", () => {
+    expect(computeDiff("a\nb\nc", "a\nb\nc")).toEqual(["  a", "  b", "  c"]);
+  });
+
+  it("treats new lines as additions when the original is shorter", () => {
+    expect(computeDiff("a", "a\nb")).toEqual(["  a", "+ b"]);
+  });
 });
