@@ -137,4 +137,58 @@ describe("useAppStore", () => {
       },
     });
   });
+
+  it("setRawContent clears jsoncCommentWarningAcceptedFor when content changes", () => {
+    useAppStore.setState({ jsoncCommentWarningAcceptedFor: "old content" });
+    useAppStore.getState().setRawContent("new content");
+    expect(useAppStore.getState().jsoncCommentWarningAcceptedFor).toBeNull();
+  });
+
+  it("setRawContent preserves jsoncCommentWarningAcceptedFor when content matches", () => {
+    useAppStore.setState({ jsoncCommentWarningAcceptedFor: "same content" });
+    useAppStore.getState().setRawContent("same content");
+    expect(useAppStore.getState().jsoncCommentWarningAcceptedFor).toBe("same content");
+  });
+
+  it("setValidationErrors auto-closes panel when errors are empty", () => {
+    useAppStore.setState({ validationPanelOpen: true });
+    useAppStore.getState().setValidationErrors([]);
+    expect(useAppStore.getState().validationPanelOpen).toBe(false);
+  });
+
+  it("setValidationErrors keeps panel open when errors are non-empty", () => {
+    useAppStore.setState({ validationPanelOpen: true });
+    useAppStore.getState().setValidationErrors([{ path: "/", message: "bad", severity: "error" }]);
+    expect(useAppStore.getState().validationPanelOpen).toBe(true);
+  });
+
+  it("requestValidationFocus increments sequence", () => {
+    const error = { path: "/name", message: "required", severity: "error" as const };
+    useAppStore.getState().requestValidationFocus(error);
+    expect(useAppStore.getState().validationFocusRequest?.sequence).toBe(1);
+    useAppStore.getState().requestValidationFocus(error);
+    expect(useAppStore.getState().validationFocusRequest?.sequence).toBe(2);
+  });
+
+  it("setBackupRetention normalizes through preferences helper", () => {
+    useAppStore.getState().setBackupRetention({ mode: "count", value: 5 });
+    expect(useAppStore.getState().preferences.backupRetention).toEqual({ mode: "count", value: 5 });
+  });
+
+  it("updateFormatDefaults normalizes json format preferences", () => {
+    useAppStore.getState().updateFormatDefaults("json", { indentSize: 4, sortKeys: true });
+    expect(useAppStore.getState().preferences.formatDefaults.json).toEqual({ indentSize: 4, sortKeys: true });
+  });
+
+  it("resetFile preserves preferences and recentFiles", () => {
+    useAppStore.setState({
+      recentFiles: ["/tmp/a.json", "/tmp/b.json"],
+      preferences: createDefaultPreferences(),
+    });
+    useAppStore.getState().setThemePreference("dark");
+    const prefs = useAppStore.getState().preferences;
+    useAppStore.getState().resetFile();
+    expect(useAppStore.getState().recentFiles).toEqual(["/tmp/a.json", "/tmp/b.json"]);
+    expect(useAppStore.getState().preferences).toEqual(prefs);
+  });
 });
