@@ -134,4 +134,39 @@ describe("ModeTabs", () => {
       jsoncCommentWarningAcceptedFor: null,
     });
   });
+
+  it("renders nothing when no file is open", () => {
+    resetStore({ currentFile: null });
+    const { container } = render(<ModeTabs />);
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("does not change mode when clicking the already active tab", async () => {
+    resetStore({ editorMode: "raw" });
+
+    render(<ModeTabs />);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Raw" }));
+
+    expect(useAppStore.getState().editorMode).toBe("raw");
+  });
+
+  it("disables form and structure for yaml files", () => {
+    resetStore({
+      currentFile: {
+        path: "/tmp/config.yaml",
+        content: "name: demo",
+        format: "yaml",
+        fileName: "config.yaml",
+      },
+      configData: null,
+      configRootKind: null,
+    });
+
+    render(<ModeTabs />);
+
+    expect(screen.getByRole("button", { name: "Form" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Structure" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Raw" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Diff" })).toBeEnabled();
+  });
 });
