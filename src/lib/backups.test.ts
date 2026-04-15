@@ -4,6 +4,7 @@ import {
   deleteBackupFromStore,
   formatBackupRelativeTime,
   loadBackupsIntoStore,
+  refreshBackupsForCurrentFile,
   restoreBackupIntoStore,
 } from "./backups";
 
@@ -134,5 +135,54 @@ describe("backups helpers", () => {
     expect(mockInvoke).toHaveBeenNthCalledWith(2, "list_backups", {
       targetPath: "/tmp/config.json",
     });
+  });
+
+  it("formatBackupRelativeTime returns 'just now' for recent timestamps", () => {
+    const now = Date.now();
+    const ts = new Date(now - 30000);
+    const formatted = `${ts.getFullYear()}${String(ts.getMonth() + 1).padStart(2, "0")}${String(ts.getDate()).padStart(2, "0")}_${String(ts.getHours()).padStart(2, "0")}${String(ts.getMinutes()).padStart(2, "0")}${String(ts.getSeconds()).padStart(2, "0")}`;
+    expect(formatBackupRelativeTime(formatted, now)).toBe("just now");
+  });
+
+  it("formatBackupRelativeTime returns 'unknown' for invalid timestamps", () => {
+    expect(formatBackupRelativeTime("invalid", Date.now())).toBe("unknown");
+  });
+
+  it("loadBackupsIntoStore sets empty on error", async () => {
+    mockInvoke.mockRejectedValue(new Error("network error"));
+
+    const result = await loadBackupsIntoStore("/tmp/config.json");
+
+    expect(result).toEqual([]);
+    expect(useAppStore.getState().backups).toEqual([]);
+    expect(useAppStore.getState().isLoadingBackups).toBe(false);
+  });
+
+  it("restoreBackupIntoStore returns false when cancelled", async () => {
+    mockConfirm.mockResolvedValue(false);
+
+    const result = await restoreBackupIntoStore("/tmp/backup.bak", "/tmp/config.json");
+
+    expect(result).toBe(false);
+    expect(mockInvoke).not.toHaveBeenCalled();
+  });
+
+  it("deleteBackupFromStore returns false when cancelled", async () => {
+    mockConfirm.mockResolvedValue(false);
+
+    const result = await deleteBackupFromStore("/tmp/backup.bak", "/tmp/config.json");
+
+    expect(result).toBe(false);
+    expect(mockInvoke).not.toHaveBeenCalled();
+  });
+
+  it("refreshBackupsForCurrentFile clears backups when no file open", async () => {
+    useAppStore.setState({ currentFile: null, backups: [{ path: "/b", timestamp: "20260101_000000", original_path: "/t" }] });
+
+    const { refreshBackupsForCurrentFile } = await import("./backups");
+    const result = await refreshBackupsForCurrentFile();
+
+    expect(result).toEqual([]);
+    expect(useAppStore.getState().backups).toEqual([]);
   });
 });
